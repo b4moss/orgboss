@@ -28,54 +28,54 @@ import (
 	"github.com/b4m-oss/orgboss/types"
 )
 
-// setupTestDB は既存のPostgreSQLコンテナに接続し、データベース接続を返す
-// 注意: Docker Composeが起動している必要があります（make up）
+// setupTestDB connects to an existing PostgreSQL container and returns a database connection
+// Note: Docker Compose must be running (make up)
 func setupTestDB(t *testing.T) (*gorm.DB, func()) {
-	// 環境変数から接続情報を取得（デフォルト値はcompose.ymlの設定に合わせる）
+	// Get connection information from environment variables (default values match compose.yml settings)
 	host := getEnv("DB_HOST", "orgboss-db")
 	port := getEnv("DB_PORT", "5432")
 	user := getEnv("DB_USER", "orgboss")
 	password := getEnv("DB_PASSWORD", "orgboss")
-	dbname := getEnv("DB_NAME", "orgboss") // 既存のデータベースを使用
+	dbname := getEnv("DB_NAME", "orgboss") // Use existing database
 
-	// データベース接続文字列を構築
+	// Build database connection string
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = "host=" + host + " port=" + port + " user=" + user + " password=" + password + " dbname=" + dbname + " sslmode=disable"
 	}
 
-	// GORMで接続（テスト時はエラーレベルのログのみ出力）
+	// Connect with GORM (only error-level logs during testing)
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Error), // record not foundなどのINFOログを抑制
+		Logger: logger.Default.LogMode(logger.Error), // Suppress INFO logs like record not found
 	})
-	require.NoError(t, err, "データベースに接続できません。Docker Composeが起動していることを確認してください: make up")
+	require.NoError(t, err, "Cannot connect to database. Make sure Docker Compose is running: make up")
 
-	// マイグレーション実行
+	// Execute migration
 	err = database.Migrate(db)
 	require.NoError(t, err)
 
-	// SKIP_CLEANUP環境変数が設定されている場合はクリーンアップをスキップ
+	// Skip cleanup if SKIP_CLEANUP environment variable is set
 	skipCleanup := os.Getenv("SKIP_CLEANUP") == "true"
 
-	// テスト開始時にデータをクリーンアップ（各テストをクリーンな状態で開始）
-	// 注意: テストの独立性を保つため、開始時のクリーンアップは常に実行する
-	// SKIP_CLEANUPは終了時のクリーンアップのみに影響する
+	// Clean up data at test start (start each test in a clean state)
+	// Note: Cleanup at start is always executed to maintain test independence
+	// SKIP_CLEANUP only affects cleanup at the end
 	ctx := context.Background()
 	if err := seed.Cleanup(ctx, db); err != nil {
-		t.Logf("テスト開始時のクリーンアップでエラーが発生しました（無視します）: %v", err)
+		t.Logf("Error occurred during cleanup at test start (ignoring): %v", err)
 	}
 
-	// クリーンアップ関数（テスト終了時にテストデータを削除）
+	// Cleanup function (deletes test data at test end)
 	cleanup := func() {
 		ctx := context.Background()
-		// SKIP_CLEANUPが設定されていない場合のみクリーンアップ
+		// Only cleanup if SKIP_CLEANUP is not set
 		if !skipCleanup {
-			// テストデータをクリーンアップ
+			// Clean up test data
 			if err := seed.Cleanup(ctx, db); err != nil {
-				t.Logf("クリーンアップ中にエラーが発生しました: %v", err)
+				t.Logf("Error occurred during cleanup: %v", err)
 			}
 		} else {
-			t.Logf("SKIP_CLEANUP=true が設定されているため、テストデータを保持します")
+			t.Logf("SKIP_CLEANUP=true is set, keeping test data")
 		}
 		sqlDB, _ := db.DB()
 		if sqlDB != nil {
@@ -86,7 +86,7 @@ func setupTestDB(t *testing.T) (*gorm.DB, func()) {
 	return db, cleanup
 }
 
-// getEnv は環境変数を取得し、デフォルト値を返す
+// getEnv gets an environment variable and returns a default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -94,7 +94,7 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// TestIntegration_CreateOrganizationWithUser は実際のデータベースを使った統合テスト
+// TestIntegration_CreateOrganizationWithUser is an integration test using a real database
 func TestIntegration_CreateOrganizationWithUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -122,27 +122,27 @@ func TestIntegration_CreateOrganizationWithUser(t *testing.T) {
 	assert.Equal(t, RoleManager, user.Role)
 	assert.Equal(t, org.ID, user.OrganizationID)
 
-	// データベースから取得して確認
+	// Verify by retrieving from database
 	retrievedOrg, err := postgresStorage.GetOrganization(ctx, org.ID)
 	require.NoError(t, err)
 	assert.Equal(t, orgName, retrievedOrg.Name)
 	
-	// Signatureの検証
-	assert.NotEmpty(t, retrievedOrg.Signature, "Signatureが設定されている")
+	// Verify Signature
+	assert.NotEmpty(t, retrievedOrg.Signature, "Signature is set")
 	
-	// SignatureでOrganizationを取得できることを確認
+	// Verify that Organization can be retrieved by Signature
 	retrievedOrgBySignature, err := postgresStorage.GetOrganizationBySignature(ctx, retrievedOrg.Signature)
 	require.NoError(t, err)
-	assert.Equal(t, retrievedOrg.ID, retrievedOrgBySignature.ID, "SignatureでOrganizationが取得できる")
+	assert.Equal(t, retrievedOrg.ID, retrievedOrgBySignature.ID, "Organization can be retrieved by Signature")
 
 	retrievedUser, err := postgresStorage.GetUser(ctx, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, userEmail, retrievedUser.Email)
-	assert.NotEmpty(t, retrievedUser.Password, "パスワードが設定されている必要があります")
+	assert.NotEmpty(t, retrievedUser.Password, "Password must be set")
 	assert.Equal(t, RoleManager, retrievedUser.Role)
 }
 
-// TestIntegration_InviteUser は招待機能の統合テスト
+// TestIntegration_InviteUser is an integration test for invitation functionality
 func TestIntegration_InviteUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -172,14 +172,14 @@ func TestIntegration_InviteUser(t *testing.T) {
 	assert.Equal(t, InvitationStatusPending, invitation.Status)
 	assert.NotEmpty(t, invitation.Token)
 
-	// データベースから取得して確認
+	// Verify by retrieving from database
 	retrievedInvitation, err := postgresStorage.GetInvitationByToken(ctx, invitation.Token)
 	require.NoError(t, err)
 	assert.Equal(t, email, retrievedInvitation.Email)
 	assert.Equal(t, org.ID, retrievedInvitation.OrganizationID)
 }
 
-// TestIntegration_AcceptInvitation は招待承諾の統合テスト
+// TestIntegration_AcceptInvitation is an integration test for invitation acceptance
 func TestIntegration_AcceptInvitation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -211,43 +211,42 @@ func TestIntegration_AcceptInvitation(t *testing.T) {
 	assert.Equal(t, RoleUser, user.Role)
 	assert.Equal(t, org.ID, user.OrganizationID)
 
-	// データベースから取得して確認
+	// Verify by retrieving from database
 	retrievedUser, err := postgresStorage.GetUser(ctx, user.ID)
 	require.NoError(t, err)
 	assert.Equal(t, "invited@example.com", retrievedUser.Email)
 	assert.Equal(t, RoleUser, retrievedUser.Role)
-	assert.NotEmpty(t, retrievedUser.Password, "パスワードが設定されている必要があります")
+	assert.NotEmpty(t, retrievedUser.Password, "Password must be set")
 
-	// 招待のステータスがpendingのままであることを確認（パスワード更新時にacceptedになる）
+	// Verify that invitation status remains pending (becomes accepted when password is updated)
 	retrievedInvitation, err := postgresStorage.GetInvitationByToken(ctx, invitation.Token)
 	require.NoError(t, err)
-	assert.Equal(t, InvitationStatusPending, retrievedInvitation.Status, "パスワード更新前はpendingのまま")
+	assert.Equal(t, InvitationStatusPending, retrievedInvitation.Status, "Status remains pending before password update")
 
-	// パスワードを更新して、Invitationがacceptedになることを確認
+	// Update password and verify that Invitation becomes accepted
 	err = m.UpdatePassword(ctx, user.ID, org.ID, "newpassword123")
 	require.NoError(t, err)
 
-	// 招待のステータスがacceptedになっていることを確認
+	// Verify that invitation status is accepted
 	retrievedInvitation, err = postgresStorage.GetInvitationByToken(ctx, invitation.Token)
 	require.NoError(t, err)
-	assert.Equal(t, InvitationStatusAccepted, retrievedInvitation.Status, "パスワード更新後はacceptedになる")
+	assert.Equal(t, InvitationStatusAccepted, retrievedInvitation.Status, "Status becomes accepted after password update")
 }
 
-// TestIntegration_WithSeedData はシードデータを使った統合テスト
+// TestIntegration_WithSeedData is an integration test using seed data
 func TestIntegration_WithSeedData(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
 	}
 
 	db, cleanup := setupTestDB(t)
-	// 注意: SKIP_CLEANUP=trueの場合、cleanup()でデータが保持される
-	// データを確認したい場合は、cleanup()を呼び出さないようにするか、
-	// またはSKIP_CLEANUP=trueでテストを実行する
+	// Note: If SKIP_CLEANUP=true, data is kept in cleanup()
+	// To check data, either don't call cleanup() or run tests with SKIP_CLEANUP=true
 	defer cleanup()
 
 	ctx := context.Background()
 
-	// シードデータを投入
+	// Seed data
 	seedData, err := seed.Seed(ctx, db)
 	require.NoError(t, err)
 	require.NotNil(t, seedData)
@@ -255,62 +254,62 @@ func TestIntegration_WithSeedData(t *testing.T) {
 	require.Len(t, seedData.Users, 3)
 	require.Len(t, seedData.Invitations, 3)
 	
-	// デバッグ用: シードデータが作成されたことを確認
-	t.Logf("シードデータ作成: Organizations=%d, Users=%d, Invitations=%d", 
+	// Debug: verify that seed data was created
+	t.Logf("Seed data created: Organizations=%d, Users=%d, Invitations=%d", 
 		len(seedData.Organizations), len(seedData.Users), len(seedData.Invitations))
 
-	// PostgresStorageを作成
+	// Create PostgresStorage
 	postgresStorage := storage.NewPostgresStorage(db)
 
-	// シードデータの組織を取得
+	// Get organization from seed data
 	org1 := seedData.Organizations[0]
 	retrievedOrg, err := postgresStorage.GetOrganization(ctx, org1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, org1.Name, retrievedOrg.Name)
 	
-	// Signatureの検証
-	assert.NotEmpty(t, retrievedOrg.Signature, "Signatureが設定されている")
-	assert.Equal(t, org1.Signature, retrievedOrg.Signature, "Signatureが一致する")
+	// Verify Signature
+	assert.NotEmpty(t, retrievedOrg.Signature, "Signature is set")
+	assert.Equal(t, org1.Signature, retrievedOrg.Signature, "Signature matches")
 	
-	// SignatureでOrganizationを取得できることを確認
+	// Verify that Organization can be retrieved by Signature
 	retrievedOrgBySignature, err := postgresStorage.GetOrganizationBySignature(ctx, org1.Signature)
 	require.NoError(t, err)
-	assert.Equal(t, org1.ID, retrievedOrgBySignature.ID, "SignatureでOrganizationが取得できる")
+	assert.Equal(t, org1.ID, retrievedOrgBySignature.ID, "Organization can be retrieved by Signature")
 	
-	// org2も確認
+	// Also verify org2
 	org2 := seedData.Organizations[1]
 	retrievedOrg2, err := postgresStorage.GetOrganization(ctx, org2.ID)
 	require.NoError(t, err)
-	assert.NotEmpty(t, retrievedOrg2.Signature, "org2のSignatureが設定されている")
+	assert.NotEmpty(t, retrievedOrg2.Signature, "org2's Signature is set")
 
-	// シードデータのユーザーを取得
+	// Get user from seed data
 	user1 := seedData.Users[0]
 	retrievedUser, err := postgresStorage.GetUser(ctx, user1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, user1.Email, retrievedUser.Email)
 	assert.Equal(t, user1.Role, retrievedUser.Role)
 
-	// シードデータの招待を取得
+	// Get invitation from seed data
 	invitation1 := seedData.Invitations[0]
 	retrievedInvitation, err := postgresStorage.GetInvitationByToken(ctx, invitation1.Token)
 	require.NoError(t, err)
 	assert.Equal(t, invitation1.Email, retrievedInvitation.Email)
 	assert.Equal(t, invitation1.Status, retrievedInvitation.Status)
 
-	// 組織IDでユーザーを取得
+	// Get users by organization ID
 	users, err := postgresStorage.GetUsersByOrganizationID(ctx, org1.ID)
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(users), 2) // 少なくとも2人のユーザーがいる
+	assert.GreaterOrEqual(t, len(users), 2) // At least 2 users
 
-	// Signatureで存在しないOrganizationを取得しようとする（エラーになることを確認）
+	// Try to get non-existent Organization by Signature (verify error is returned)
 	_, err = postgresStorage.GetOrganizationBySignature(ctx, "non-existent-signature")
-	assert.Error(t, err, "存在しないSignatureではエラーが返される")
+	assert.Error(t, err, "Error is returned for non-existent Signature")
 	
-	// 注意: defer cleanup()でクリーンアップされるため、ここでの明示的なクリーンアップは不要
-	// SKIP_CLEANUP=trueが設定されている場合は、defer cleanup()でもデータが保持される
+	// Note: Explicit cleanup here is not needed as defer cleanup() will handle it
+	// If SKIP_CLEANUP=true is set, data is kept even in defer cleanup()
 }
 
-// TestIntegration_DeleteUser はユーザー削除の統合テスト
+// TestIntegration_DeleteUser is an integration test for user deletion
 func TestIntegration_DeleteUser(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -335,19 +334,19 @@ func TestIntegration_DeleteUser(t *testing.T) {
 	user, err := m.AcceptInvitation(ctx, invitation.Token)
 	require.NoError(t, err)
 
-	// ユーザーを削除
+	// Delete user
 	err = m.DeleteUser(ctx, user.ID, org.ID)
 	require.NoError(t, err)
 
-	// ユーザーが削除されていることを確認（論理削除）
+	// Verify that user is deleted (logical deletion)
 	retrievedUser, err := postgresStorage.GetUser(ctx, user.ID)
 	if err == nil {
-		// 論理削除の場合、DeletedAtが設定されている
+		// For logical deletion, DeletedAt is set
 		assert.NotNil(t, retrievedUser.DeletedAt)
 	}
 }
 
-// TestIntegration_DeleteOrganization は組織削除の統合テスト
+// TestIntegration_DeleteOrganization is an integration test for organization deletion
 func TestIntegration_DeleteOrganization(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -372,20 +371,20 @@ func TestIntegration_DeleteOrganization(t *testing.T) {
 	_, err = m.AcceptInvitation(ctx, invitation.Token)
 	require.NoError(t, err)
 
-	// マネージャーを削除（組織も削除される）
+	// Delete manager (organization is also deleted)
 	err = m.DeleteUser(ctx, manager.ID, org.ID)
 	require.NoError(t, err)
 
-	// 組織が削除されていることを確認（論理削除）
+	// Verify that organization is deleted (logical deletion)
 	retrievedOrg, err := postgresStorage.GetOrganization(ctx, org.ID)
 	if err == nil {
-		// 論理削除の場合、DeletedAtが設定されている
+		// For logical deletion, DeletedAt is set
 		assert.NotNil(t, retrievedOrg.DeletedAt)
 	}
 }
 
-// TestIntegration_AuthbossUserRegistration はAuthbossを使ったユーザー登録の統合テスト
-// 注意: このテストはAuthbossの機能をテストするもので、orgbossのコードは直接テストしません
+// TestIntegration_AuthbossUserRegistration is an integration test for user registration using Authboss
+// Note: This test tests Authboss functionality and does not directly test orgboss code
 func TestIntegration_AuthbossUserRegistration(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -399,34 +398,34 @@ func TestIntegration_AuthbossUserRegistration(t *testing.T) {
 	// AuthbossのServerStorerを実装
 	serverStorer := &authbossServerStorer{db: db}
 
-	// ユーザー登録のテストデータ
+	// Test data for user registration
 	email := "testuser@example.com"
 	password := "testpassword123"
 
-	// パスワードをハッシュ化（Authbossと同じ方法）
+	// Hash password (same method as Authboss)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	require.NoError(t, err, "パスワードのハッシュ化に失敗しました")
+	require.NoError(t, err, "Failed to hash password")
 
-	// AuthbossのUserインターフェースを実装した構造体を作成
+	// Create struct implementing Authboss's User interface
 	authbossUser := &authbossuser.User{}
 	authbossUser.PutPID(email)
-	authbossUser.PutPassword(string(hashedPassword)) // ハッシュ化されたパスワードを設定
+	authbossUser.PutPassword(string(hashedPassword)) // Set hashed password
 
-	// ユーザーを保存（Authboss経由）
+	// Save user (via Authboss)
 	err = serverStorer.Save(ctx, authbossUser)
-	require.NoError(t, err, "Authboss経由でユーザーを保存できません")
+	require.NoError(t, err, "Cannot save user via Authboss")
 
-	// データベースから直接確認
+	// Verify directly from database
 	var dbUser types.User
 	err = db.WithContext(ctx).Where("email = ?", email).First(&dbUser).Error
-	require.NoError(t, err, "データベースからユーザーを取得できません")
+	require.NoError(t, err, "Cannot get user from database")
 	assert.Equal(t, email, dbUser.Email)
-	assert.NotEmpty(t, dbUser.Password, "パスワードハッシュが保存されている必要があります")
-	assert.NotEqual(t, password, dbUser.Password, "パスワードはハッシュ化されている必要があります")
+	assert.NotEmpty(t, dbUser.Password, "Password hash must be saved")
+	assert.NotEqual(t, password, dbUser.Password, "Password must be hashed")
 }
 
-// TestIntegration_AuthbossUserLogin はAuthbossを使ったユーザーログインの統合テスト
-// 注意: このテストはAuthbossの機能をテストするもので、orgbossのコードは直接テストしません
+// TestIntegration_AuthbossUserLogin is an integration test for user login using Authboss
+// Note: This test tests Authboss functionality and does not directly test orgboss code
 func TestIntegration_AuthbossUserLogin(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -440,46 +439,46 @@ func TestIntegration_AuthbossUserLogin(t *testing.T) {
 	// AuthbossのServerStorerを実装
 	serverStorer := &authbossServerStorer{db: db}
 
-	// テスト用のユーザーを作成
+	// Create test user
 	email := "loginuser@example.com"
 	password := "loginpassword123"
 
-	// パスワードをハッシュ化（Authbossと同じ方法）
+	// Hash password (same method as Authboss)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	require.NoError(t, err, "パスワードのハッシュ化に失敗しました")
+	require.NoError(t, err, "Failed to hash password")
 
-	// AuthbossのUserインターフェースを実装した構造体を作成して保存
+	// Create and save struct implementing Authboss's User interface
 	authbossUser := &authbossuser.User{}
 	authbossUser.PutPID(email)
-	authbossUser.PutPassword(string(hashedPassword)) // ハッシュ化されたパスワードを設定
+	authbossUser.PutPassword(string(hashedPassword)) // Set hashed password
 
 	err = serverStorer.Save(ctx, authbossUser)
-	require.NoError(t, err, "ユーザーを保存できません")
+	require.NoError(t, err, "Cannot save user")
 
-	// ログインのテスト（Authboss経由でユーザーを取得）
+	// Test login (get user via Authboss)
 	retrievedUser, err := serverStorer.Load(ctx, email)
-	require.NoError(t, err, "Authboss経由でユーザーを取得できません")
-	assert.NotNil(t, retrievedUser, "ユーザーが取得できる必要があります")
+	require.NoError(t, err, "Cannot get user via Authboss")
+	assert.NotNil(t, retrievedUser, "User must be retrievable")
 
-	// パスワードの検証
+	// Verify password
 	if retrievedUser != nil {
-		// authbossuser.Userに型アサーション
+		// Type assertion to authbossuser.User
 		authbossUser, ok := retrievedUser.(*authbossuser.User)
-		require.True(t, ok, "authbossuser.User型に変換できる必要があります")
+		require.True(t, ok, "Must be convertible to authbossuser.User type")
 		
-		// Authbossはパスワードをハッシュ化して保存するため、
-		// 取得したパスワードハッシュが存在することを確認
+		// Since Authboss saves password hashed,
+		// verify that retrieved password hash exists
 		retrievedPasswordHash := authbossUser.GetPassword()
-		assert.NotEmpty(t, retrievedPasswordHash, "パスワードハッシュが取得できる必要があります")
-		assert.NotEqual(t, password, retrievedPasswordHash, "パスワードはハッシュ化されている必要があります")
+		assert.NotEmpty(t, retrievedPasswordHash, "Password hash must be retrievable")
+		assert.NotEqual(t, password, retrievedPasswordHash, "Password must be hashed")
 		
-		// パスワードの検証（bcryptで検証）
+		// Verify password (verify with bcrypt)
 		err := bcrypt.CompareHashAndPassword([]byte(retrievedPasswordHash), []byte(password))
-		assert.NoError(t, err, "ハッシュ化されたパスワードが正しく検証できる必要があります")
+		assert.NoError(t, err, "Hashed password must be verifiable correctly")
 	}
 }
 
-// TestIntegration_AuthbossUserLogin_PendingInvitation はpendingのinvitationのユーザーがログインを拒否されることをテストする
+// TestIntegration_AuthbossUserLogin_PendingInvitation tests that users with pending invitations are denied login
 func TestIntegration_AuthbossUserLogin_PendingInvitation(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -493,7 +492,7 @@ func TestIntegration_AuthbossUserLogin_PendingInvitation(t *testing.T) {
 	// AuthbossのServerStorerを実装
 	serverStorer := &authbossServerStorer{db: db}
 
-	// テスト用の組織を作成
+	// Create test organization
 	signatureBytes := make([]byte, 12)
 	_, err := rand.Read(signatureBytes)
 	require.NoError(t, err)
@@ -506,17 +505,17 @@ func TestIntegration_AuthbossUserLogin_PendingInvitation(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 	err = db.WithContext(ctx).Create(org).Error
-	require.NoError(t, err, "組織の作成に失敗しました")
+	require.NoError(t, err, "Failed to create organization")
 
-	// テスト用のユーザーを作成（AcceptInvitationで作成された状態をシミュレート）
+	// Create test user (simulate state created by AcceptInvitation)
 	email := "pendinguser@example.com"
 	password := "randompassword123"
 
-	// パスワードをハッシュ化（Authbossと同じ方法）
+	// Hash password (same method as Authboss)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	require.NoError(t, err, "パスワードのハッシュ化に失敗しました")
+	require.NoError(t, err, "Failed to hash password")
 
-	// Userを作成
+	// Create User
 	user := &types.User{
 		Email:          email,
 		Password:       string(hashedPassword),
@@ -526,9 +525,9 @@ func TestIntegration_AuthbossUserLogin_PendingInvitation(t *testing.T) {
 		UpdatedAt:      time.Now(),
 	}
 	err = db.WithContext(ctx).Create(user).Error
-	require.NoError(t, err, "ユーザーの作成に失敗しました")
+	require.NoError(t, err, "Failed to create user")
 
-	// pendingのinvitationを作成（AcceptInvitation後、パスワード更新前の状態）
+	// Create pending invitation (state after AcceptInvitation, before password update)
 	tokenBytes := make([]byte, 32)
 	_, err = rand.Read(tokenBytes)
 	require.NoError(t, err)
@@ -543,27 +542,27 @@ func TestIntegration_AuthbossUserLogin_PendingInvitation(t *testing.T) {
 		CreatedAt:      time.Now(),
 	}
 	err = db.WithContext(ctx).Create(invitation).Error
-	require.NoError(t, err, "invitationの作成に失敗しました")
+	require.NoError(t, err, "Failed to create invitation")
 
-	// ログインを試みる（pendingのinvitationがあるため、エラーが返されるはず）
+	// Attempt login (should return error because pending invitation exists)
 	retrievedUser, err := serverStorer.Load(ctx, email)
-	assert.Error(t, err, "pendingのinvitationがある場合、ログインは拒否される必要があります")
-	assert.Nil(t, retrievedUser, "ユーザーは取得できない必要があります")
-	assert.Equal(t, types.ErrInvitationPending, err, "ErrInvitationPendingエラーが返される必要があります")
+	assert.Error(t, err, "Login must be denied when pending invitation exists")
+	assert.Nil(t, retrievedUser, "User must not be retrievable")
+	assert.Equal(t, types.ErrInvitationPending, err, "ErrInvitationPending error must be returned")
 
-	// invitationをacceptedに更新（パスワード更新後の状態をシミュレート）
+	// Update invitation to accepted (simulate state after password update)
 	invitation.Status = types.InvitationStatusAccepted
 	err = db.WithContext(ctx).Save(invitation).Error
-	require.NoError(t, err, "invitationの更新に失敗しました")
+	require.NoError(t, err, "Failed to update invitation")
 
-	// 再度ログインを試みる（acceptedになったため、ログインできるはず）
+	// Attempt login again (should succeed because invitation is now accepted)
 	retrievedUser, err = serverStorer.Load(ctx, email)
-	assert.NoError(t, err, "acceptedのinvitationがある場合、ログインできる必要があります")
-	assert.NotNil(t, retrievedUser, "ユーザーが取得できる必要があります")
+	assert.NoError(t, err, "Login must succeed when invitation is accepted")
+	assert.NotNil(t, retrievedUser, "User must be retrievable")
 }
 
-// TestIntegration_SetupAuthbossWithAutoLogin はSetupAuthbossWithAutoLogin関数の基本的な動作をテストする
-// 注意: Authboss v3の実際のAPIに合わせて実装する必要があるため、現時点では基本的なテストのみ
+// TestIntegration_SetupAuthbossWithAutoLogin tests the basic behavior of SetupAuthbossWithAutoLogin function
+// Note: Currently only basic tests, as implementation must match Authboss v3's actual API
 func TestIntegration_SetupAuthbossWithAutoLogin(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -572,52 +571,52 @@ func TestIntegration_SetupAuthbossWithAutoLogin(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	// Authbossインスタンスを作成（簡易的なテスト用）
-	// 注意: 実際のAuthboss v3のAPIに合わせて実装する必要があります
+	// Create Authboss instance (for simple testing)
+	// Note: Implementation must match Authboss v3's actual API
 	ab := &authboss.Authboss{}
 	
-	// SetupAuthbossWithAutoLoginを呼び出してエラーが発生しないことを確認
+	// Call SetupAuthbossWithAutoLogin and verify no error occurs
 	err := authbossuser.SetupAuthbossWithAutoLogin(db, ab, true)
-	// 現時点では実装が不完全なため、エラーが発生する可能性があります
-	// 実際のAPIに合わせて実装が完了したら、エラーチェックを追加してください
+	// Errors may occur as implementation is currently incomplete
+	// Add error checks once implementation is complete to match actual API
 	if err != nil {
-		t.Logf("SetupAuthbossWithAutoLoginでエラーが発生しました（実装が不完全なため、これは想定内です）: %v", err)
+		t.Logf("Error occurred in SetupAuthbossWithAutoLogin (expected as implementation is incomplete): %v", err)
 	}
 
-	// 自動ログインが無効の場合もテスト
+	// Also test with auto-login disabled
 	err = authbossuser.SetupAuthbossWithAutoLogin(db, ab, false)
 	if err != nil {
-		t.Logf("SetupAuthbossWithAutoLogin（無効）でエラーが発生しました（実装が不完全なため、これは想定内です）: %v", err)
+		t.Logf("Error occurred in SetupAuthbossWithAutoLogin (disabled) (expected as implementation is incomplete): %v", err)
 	}
 }
 
-// authbossServerStorer はAuthbossのストレージ実装（テスト用）
+// authbossServerStorer is an Authboss storage implementation (for testing)
 type authbossServerStorer struct {
 	db *gorm.DB
 }
 
 func (s *authbossServerStorer) Save(ctx context.Context, user authboss.User) error {
-	// AuthbossのUserインターフェースから値を取得
+	// Get values from Authboss's User interface
 	email := user.GetPID()
 	
-	// authbossuser.Userに型アサーションしてパスワードを取得
+	// Type assert to authbossuser.User to get password
 	authbossUser, ok := user.(*authbossuser.User)
 	if !ok {
-		// 型アサーションに失敗した場合はエラー
-		// authbossuser.User型である必要があります
+		// Return error if type assertion fails
+		// Must be authbossuser.User type
 		return types.ErrUserNotFound
 	}
-	password := authbossUser.GetPassword() // Authbossがハッシュ化したパスワード
+	password := authbossUser.GetPassword() // Password hashed by Authboss
 
-	// orgbossのUserモデルに変換
+	// Convert to orgboss's User model
 	dbUser := &types.User{
 		Email:    email,
-		Password: password, // Authbossがハッシュ化したパスワード
+		Password: password, // Password hashed by Authboss
 		Role:     types.RoleUser,
 	}
 
-	// 組織も作成（テスト用）
-	// Signatureを生成（12バイト、24文字の16進数）
+	// Also create organization (for testing)
+	// Generate Signature (12 bytes, 24 hex characters)
 	signatureBytes := make([]byte, 12)
 	if _, err := rand.Read(signatureBytes); err != nil {
 		return err
@@ -644,17 +643,17 @@ func (s *authbossServerStorer) Load(ctx context.Context, key string) (authboss.U
 		return nil, err
 	}
 
-	// pendingのinvitationがあるかチェック
+	// Check if pending invitation exists
 	var pendingInvitations []types.Invitation
 	if err := s.db.WithContext(ctx).Where("email = ? AND status = ?", key, types.InvitationStatusPending).Find(&pendingInvitations).Error; err != nil {
 		return nil, err
 	}
 	if len(pendingInvitations) > 0 {
-		// pendingのinvitationがある場合はログインを拒否
+		// Deny login if pending invitation exists
 		return nil, types.ErrInvitationPending
 	}
 
-	// AuthbossのUserインターフェースを実装した構造体に変換
+	// Convert to struct implementing Authboss's User interface
 	authbossUser := &authbossuser.User{}
 	authbossUser.PutPID(user.Email)
 	authbossUser.PutPassword(user.Password)
@@ -662,7 +661,7 @@ func (s *authbossServerStorer) Load(ctx context.Context, key string) (authboss.U
 	return authbossUser, nil
 }
 
-// MailpitMessage はMailpitのAPIから返されるメールメッセージの構造
+// MailpitMessage is the structure of email messages returned from Mailpit's API
 type MailpitMessage struct {
 	ID      string   `json:"ID"`
 	From    MailpitAddress `json:"From"`
@@ -672,13 +671,13 @@ type MailpitMessage struct {
 	HTML    string   `json:"HTML"`
 }
 
-// MailpitAddress はMailpitのメールアドレス構造
+// MailpitAddress is Mailpit's email address structure
 type MailpitAddress struct {
 	Name    string `json:"Name"`
 	Address string `json:"Address"`
 }
 
-// MailpitMessagesResponse はMailpitのメール一覧APIのレスポンス
+// MailpitMessagesResponse is the response from Mailpit's email list API
 type MailpitMessagesResponse struct {
 	Total int              `json:"total"`
 	Count int              `json:"count"`
@@ -686,7 +685,7 @@ type MailpitMessagesResponse struct {
 	Messages []MailpitMessage `json:"messages"`
 }
 
-// getMailpitMessages はMailpitのAPIからメール一覧を取得する
+// getMailpitMessages gets email list from Mailpit's API
 func getMailpitMessages(t *testing.T) ([]MailpitMessage, error) {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/messages", mailpitURL)
@@ -710,7 +709,7 @@ func getMailpitMessages(t *testing.T) ([]MailpitMessage, error) {
 	return messagesResp.Messages, nil
 }
 
-// getMailpitMessage はMailpitのAPIから特定のメールを取得する
+// getMailpitMessage gets a specific email from Mailpit's API
 func getMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/message/%s", mailpitURL, messageID)
@@ -734,7 +733,7 @@ func getMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 	return &message, nil
 }
 
-// clearMailpitMessages はMailpitのメールをクリアする（テスト用）
+// clearMailpitMessages clears Mailpit's emails (for testing)
 func clearMailpitMessages(t *testing.T) error {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/messages", mailpitURL)
@@ -759,7 +758,7 @@ func clearMailpitMessages(t *testing.T) error {
 	return nil
 }
 
-// TestIntegration_EmailSending はメール送信の統合テスト
+// TestIntegration_EmailSending is an integration test for email sending
 func TestIntegration_EmailSending(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping integration test in short mode")
@@ -768,87 +767,87 @@ func TestIntegration_EmailSending(t *testing.T) {
 	db, cleanup := setupTestDB(t)
 	defer cleanup()
 
-	// Mailpitのメールをクリア（テストの独立性を保つため）
+	// Clear Mailpit emails (to maintain test independence)
 	if err := clearMailpitMessages(t); err != nil {
-		t.Logf("Mailpitのメールクリアに失敗しました（無視します）: %v", err)
+		t.Logf("Failed to clear Mailpit emails (ignoring): %v", err)
 	}
 
 	ctx := context.Background()
 	postgresStorage := storage.NewPostgresStorage(db)
 	config := DefaultConfig()
 	
-	// SMTPEmailSenderを使用
+	// Use SMTPEmailSender
 	smtpSender := email.NewSMTPEmailSender()
 	config.EmailSender = smtpSender
-	// 招待URLのベースURLを設定
+	// Set base URL for invitation links
 	config.InvitationBaseURL = "http://localhost:8080"
 	config.InvitationRedirectPath = "/reset-password"
 	m := NewManagerWithStorage(config, postgresStorage)
 
-	// 組織とマネージャーを作成
+	// Create organization and manager
 	org, manager, err := m.CreateOrganizationWithUser(ctx, "メールテスト組織", "manager@example.com")
 	require.NoError(t, err)
 
-	// ユーザーを招待（メール送信が実行される）
+	// Invite user (email sending is executed)
 	inviteEmail := "invited@example.com"
 	invitation, err := m.InviteUser(ctx, org.ID, inviteEmail)
 	require.NoError(t, err)
 	require.NotNil(t, invitation)
 
-	// 少し待ってからMailpitのAPIでメールを確認
+	// Wait a bit before checking emails via Mailpit API
 	time.Sleep(500 * time.Millisecond)
 
-	// Mailpitからメール一覧を取得
+	// Get email list from Mailpit
 	messages, err := getMailpitMessages(t)
-	require.NoError(t, err, "Mailpitからメールを取得できません")
-	require.Greater(t, len(messages), 0, "少なくとも1通のメールが送信されている必要があります")
+	require.NoError(t, err, "Cannot get emails from Mailpit")
+	require.Greater(t, len(messages), 0, "At least one email must be sent")
 
-	// 最新のメールを取得（最初のメールが最新）
+	// Get latest email (first email is latest)
 	latestMessageSummary := messages[0]
 	
-	// メール詳細を取得（本文を含む）
+	// Get email details (including body)
 	latestMessage, err := getMailpitMessage(t, latestMessageSummary.ID)
-	require.NoError(t, err, "Mailpitからメール詳細を取得できません")
+	require.NoError(t, err, "Cannot get email details from Mailpit")
 	
-	// メールの内容を検証
-	assert.Equal(t, "組織への招待", latestMessage.Subject, "件名が正しい")
-	assert.Contains(t, latestMessage.To[0].Address, inviteEmail, "宛先が正しい")
-	// URLが含まれていることを確認
-	assert.Contains(t, latestMessage.Text, "http://localhost:8080/invite/", "本文に招待URLが含まれている")
-	assert.Contains(t, latestMessage.Text, invitation.Token, "URLにトークンが含まれている")
-	assert.Contains(t, latestMessage.Text, invitation.ExpiresAt.Format("2006-01-02"), "本文に有効期限が含まれている")
+	// Verify email content
+	assert.Equal(t, "組織への招待", latestMessage.Subject, "Subject is correct")
+	assert.Contains(t, latestMessage.To[0].Address, inviteEmail, "Recipient is correct")
+	// Verify URL is included
+	assert.Contains(t, latestMessage.Text, "http://localhost:8080/invite/", "Invitation URL is included in body")
+	assert.Contains(t, latestMessage.Text, invitation.Token, "Token is included in URL")
+	assert.Contains(t, latestMessage.Text, invitation.ExpiresAt.Format("2006-01-02"), "Expiry date is included in body")
 
-	// ResendInvitationのテスト
+	// Test ResendInvitation
 	invitation2, err := m.InviteUser(ctx, org.ID, "invited2@example.com")
 	require.NoError(t, err)
 
-	// 招待を再送信（トークンが再生成される）
+	// Resend invitation (token is regenerated)
 	err = m.ResendInvitation(ctx, invitation2.ID, org.ID, manager.ID)
 	require.NoError(t, err)
 
-	// 再送信後に更新された招待を取得（トークンが再生成されているため）
+	// Get updated invitation after resend (token has been regenerated)
 	updatedInvitation2, err := postgresStorage.GetInvitationByID(ctx, invitation2.ID)
 	require.NoError(t, err)
-	assert.NotEqual(t, invitation2.Token, updatedInvitation2.Token, "再送信によりトークンが再生成されている")
+	assert.NotEqual(t, invitation2.Token, updatedInvitation2.Token, "Token is regenerated by resend")
 
-	// 少し待ってからMailpitのAPIでメールを確認
+	// Wait a bit before checking emails via Mailpit API
 	time.Sleep(500 * time.Millisecond)
 
-	// Mailpitからメール一覧を再取得
+	// Get email list from Mailpit again
 	messages2, err := getMailpitMessages(t)
 	require.NoError(t, err)
-	require.Greater(t, len(messages2), len(messages), "再送信によりメールが追加されている")
+	require.Greater(t, len(messages2), len(messages), "Email is added by resend")
 
-	// 最新のメール（再送信されたメール）を確認
+	// Check latest email (resent email)
 	latestMessage2Summary := messages2[0]
 	
-	// メール詳細を取得（本文を含む）
+	// Get email details (including body)
 	latestMessage2, err := getMailpitMessage(t, latestMessage2Summary.ID)
-	require.NoError(t, err, "Mailpitから再送信メール詳細を取得できません")
+	require.NoError(t, err, "Cannot get resent email details from Mailpit")
 	
-	assert.Equal(t, "組織への招待", latestMessage2.Subject, "再送信メールの件名が正しい")
-	assert.Contains(t, latestMessage2.To[0].Address, "invited2@example.com", "再送信メールの宛先が正しい")
-	assert.Contains(t, latestMessage2.Text, updatedInvitation2.Token, "再送信メールの本文に再生成されたトークンが含まれている")
-	assert.Contains(t, latestMessage2.Text, updatedInvitation2.ExpiresAt.Format("2006-01-02"), "再送信メールの本文に更新された有効期限が含まれている")
+	assert.Equal(t, "組織への招待", latestMessage2.Subject, "Resent email subject is correct")
+	assert.Contains(t, latestMessage2.To[0].Address, "invited2@example.com", "Resent email recipient is correct")
+	assert.Contains(t, latestMessage2.Text, updatedInvitation2.Token, "Resent email body contains regenerated token")
+	assert.Contains(t, latestMessage2.Text, updatedInvitation2.ExpiresAt.Format("2006-01-02"), "Resent email body contains updated expiry date")
 }
 

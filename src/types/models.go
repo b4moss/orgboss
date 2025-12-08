@@ -2,7 +2,7 @@ package types
 
 import "time"
 
-// Role はユーザーのロールを表す
+// Role represents a user's role
 type Role string
 
 const (
@@ -10,7 +10,7 @@ const (
 	RoleUser    Role = "user"
 )
 
-// InvitationStatus は招待のステータスを表す
+// InvitationStatus represents the status of an invitation
 type InvitationStatus string
 
 const (
@@ -20,21 +20,21 @@ const (
 	InvitationStatusExpired  InvitationStatus = "expired"
 )
 
-// Organization は組織を表す
+// Organization represents an organization
 type Organization struct {
 	ID        uint      `gorm:"primaryKey"`
 	Name      string    `gorm:"not null"`
-	Signature string    `gorm:"uniqueIndex;not null"` // 組織の一意識別子（法人番号またはランダム文字列）。ユニーク制約あり。
+	Signature string    `gorm:"uniqueIndex;not null"` // Unique identifier for the organization (corporate number or random string). Has unique constraint.
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `gorm:"index"`
 }
 
-// User はユーザーを表す（AuthbossのUserモデルを拡張）
+// User represents a user (extends Authboss's User model)
 type User struct {
 	ID             uint   `gorm:"primaryKey"`
 	Email          string `gorm:"uniqueIndex;not null"`
-	Password       string `gorm:"default:''"` // Authbossでハッシュ化されたパスワード（既存データ対応のためnullable）
+	Password       string `gorm:"default:''"` // Password hashed by Authboss (nullable for existing data compatibility)
 	OrganizationID uint   `gorm:"not null;index"`
 	Role           Role   `gorm:"not null;default:'user'"`
 	CreatedAt      time.Time
@@ -42,7 +42,7 @@ type User struct {
 	DeletedAt      *time.Time `gorm:"index"`
 }
 
-// Invitation は招待を表す
+// Invitation represents an invitation
 type Invitation struct {
 	ID             uint            `gorm:"primaryKey"`
 	Email          string          `gorm:"not null;index"`

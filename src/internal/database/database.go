@@ -11,9 +11,9 @@ import (
 	"github.com/b4m-oss/orgboss/types"
 )
 
-// Connect はデータベースに接続し、GORMインスタンスを返す
+// Connect connects to the database and returns a GORM instance
 func Connect() (*gorm.DB, error) {
-	// 環境変数から接続情報を取得
+	// Get connection information from environment variables
 	host := getEnv("DB_HOST", "localhost")
 	port := getEnv("DB_PORT", "5432")
 	user := getEnv("DB_USER", "orgboss")
@@ -21,7 +21,7 @@ func Connect() (*gorm.DB, error) {
 	dbname := getEnv("DB_NAME", "orgboss")
 	sslmode := getEnv("DB_SSLMODE", "disable")
 
-	// DATABASE_URLが設定されている場合は優先
+	// DATABASE_URL takes precedence if set
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
 		dsn = fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
@@ -38,73 +38,73 @@ func Connect() (*gorm.DB, error) {
 	return db, nil
 }
 
-// Migrate はデータベーススキーマをマイグレーションする
+// Migrate migrates the database schema
 func Migrate(db *gorm.DB) error {
-	// 既存のusersテーブルにpasswordカラムがない場合の対応
-	// passwordカラムが存在するか確認
+	// Handle case where password column doesn't exist in existing users table
+	// Check if password column exists
 	var count int64
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'password'").Scan(&count).Error; err != nil {
-		// エラーは無視（テーブルが存在しない場合など）
+		// Ignore errors (e.g., table doesn't exist)
 	}
 	
 	if count == 0 {
-		// passwordカラムが存在しない場合は追加（nullableで、既存データ対応）
+		// Add password column if it doesn't exist (nullable for existing data compatibility)
 		if err := db.Exec("ALTER TABLE users ADD COLUMN password TEXT DEFAULT ''").Error; err != nil {
-			// エラーは無視（既に存在する場合など）
+			// Ignore errors (e.g., already exists)
 		}
-		// 既存のnull値を空文字列に更新
+		// Update existing null values to empty string
 		if err := db.Exec("UPDATE users SET password = '' WHERE password IS NULL").Error; err != nil {
-			// エラーは無視
+			// Ignore errors
 		}
 	}
 
-	// organizationsテーブルにsignatureカラムがない場合の対応
+	// Handle case where signature column doesn't exist in organizations table
 	var signatureCount int64
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'organizations' AND column_name = 'signature'").Scan(&signatureCount).Error; err != nil {
-		// エラーは無視（テーブルが存在しない場合など）
+		// Ignore errors (e.g., table doesn't exist)
 	}
 	
 	if signatureCount == 0 {
-		// signatureカラムが存在しない場合は追加（まずnullableで追加）
+		// Add signature column if it doesn't exist (first add as nullable)
 		if err := db.Exec("ALTER TABLE organizations ADD COLUMN signature TEXT").Error; err != nil {
-			// エラーは無視（既に存在する場合など）
+			// Ignore errors (e.g., already exists)
 		}
 	}
 	
-	// 既存のレコードでsignatureが空（NULLまたは空文字列）の場合にランダムな値を設定
-	// PostgreSQLのgen_random_uuid()とmd5()を使ってランダムな文字列を生成（24文字に切り詰め）
+	// Set random values for existing records where signature is empty (NULL or empty string)
+	// Generate random string using PostgreSQL's gen_random_uuid() and md5() (truncated to 24 characters)
 	if err := db.Exec("UPDATE organizations SET signature = LEFT(md5(gen_random_uuid()::text || id::text || random()::text), 24) WHERE signature IS NULL OR signature = ''").Error; err != nil {
-		// エラーは無視
+		// Ignore errors
 	}
 	
-	// NOT NULL制約を追加（既に存在する場合はエラーになるが無視）
+	// Add NOT NULL constraint (ignore error if already exists)
 	if err := db.Exec("ALTER TABLE organizations ALTER COLUMN signature SET NOT NULL").Error; err != nil {
-		// エラーは無視（既にNOT NULLの場合など）
+		// Ignore errors (e.g., already NOT NULL)
 	}
 	
-	// ユニークインデックスを追加
+	// Add unique index
 	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_signature ON organizations(signature)").Error; err != nil {
-		// エラーは無視（既に存在する場合など）
+		// Ignore errors (e.g., already exists)
 	}
 
-	// signature_typeカラムが存在する場合は削除（不要になったため）
+	// Remove signature_type column if it exists (no longer needed)
 	var signatureTypeCount int64
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'organizations' AND column_name = 'signature_type'").Scan(&signatureTypeCount).Error; err != nil {
-		// エラーは無視（テーブルが存在しない場合など）
+		// Ignore errors (e.g., table doesn't exist)
 	}
 	
 	if signatureTypeCount > 0 {
-		// signature_typeカラムのインデックスを削除
+		// Drop signature_type column index
 		if err := db.Exec("DROP INDEX IF EXISTS idx_organizations_signature_type").Error; err != nil {
-			// エラーは無視
+			// Ignore errors
 		}
-		// signature_typeカラムを削除
+		// Drop signature_type column
 		if err := db.Exec("ALTER TABLE organizations DROP COLUMN IF EXISTS signature_type").Error; err != nil {
-			// エラーは無視
+			// Ignore errors
 		}
 	}
 
-	// AutoMigrateを実行
+	// Execute AutoMigrate
 	return db.AutoMigrate(
 		&types.Organization{},
 		&types.User{},
@@ -112,7 +112,7 @@ func Migrate(db *gorm.DB) error {
 	)
 }
 
-// getEnv は環境変数を取得し、デフォルト値を返す
+// getEnv gets an environment variable and returns a default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

@@ -11,7 +11,7 @@ var (
 	emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 )
 
-// ValidateEmail はメールアドレスの形式を検証する
+// ValidateEmail validates the format of an email address
 func ValidateEmail(email string) error {
 	if email == "" {
 		return types.ErrInvalidInput
@@ -22,7 +22,7 @@ func ValidateEmail(email string) error {
 	return nil
 }
 
-// ValidateOrganizationName は組織名を検証する
+// ValidateOrganizationName validates an organization name
 func ValidateOrganizationName(name string) error {
 	name = strings.TrimSpace(name)
 	if name == "" {

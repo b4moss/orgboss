@@ -2,14 +2,14 @@ package orgboss
 
 import "github.com/b4m-oss/orgboss/types"
 
-// 型エイリアスで types パッケージの型を再エクスポート
+// Re-export types from the types package using type aliases
 type Role = types.Role
 type InvitationStatus = types.InvitationStatus
 type Organization = types.Organization
 type User = types.User
 type Invitation = types.Invitation
 
-// 定数も再エクスポート
+// Re-export constants
 const (
 	RoleManager = types.RoleManager
 	RoleUser    = types.RoleUser

@@ -1,21 +1,21 @@
 package orgboss
 
-// DefaultRoleChecker はデフォルトのRoleChecker実装
+// DefaultRoleChecker is the default RoleChecker implementation
 type DefaultRoleChecker struct{}
 
-// NewDefaultRoleChecker は新しいDefaultRoleCheckerを作成する
+// NewDefaultRoleChecker creates a new DefaultRoleChecker
 func NewDefaultRoleChecker() *DefaultRoleChecker {
 	return &DefaultRoleChecker{}
 }
 
-// HasPermission はロールとアクションに基づいて権限をチェックする
+// HasPermission checks permissions based on role and action
 func (r *DefaultRoleChecker) HasPermission(role Role, action string) bool {
 	switch role {
 	case RoleManager:
-		// managerは全てのアクションを実行可能
+		// manager can execute all actions
 		return true
 	case RoleUser:
-		// userはreadのみ実行可能
+		// user can only execute read
 		return action == "read"
 	default:
 		return false

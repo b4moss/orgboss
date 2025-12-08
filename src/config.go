@@ -2,7 +2,7 @@ package orgboss
 
 import "time"
 
-// Config はorgbossの設定を表す
+// Config represents the configuration for orgboss
 type Config struct {
 	InvitationExpiryDuration        time.Duration
 	DefaultRole                     Role
@@ -11,28 +11,28 @@ type Config struct {
 	RoleChecker                     RoleChecker
 	DeletionHandler                 DeletionHandler
 	EmailSender                     EmailSender
-	InvitationBaseURL               string // 招待URLのベースURL（例: "http://localhost:8080"）
-	InvitationRedirectPath           string // リダイレクト先のパス（例: "/reset-password"）
-	EnableAutoLoginAfterPasswordReset bool // パスワードリセット後の自動ログインを有効にする（デフォルト: true）
-	InvitationEmailSubjectTemplatePath string // 件名テンプレートファイルのパス（オプション、空の場合はデフォルトテンプレートを使用）
-	InvitationEmailBodyTemplatePath   string // 本文テンプレートファイルのパス（オプション、空の場合はデフォルトテンプレートを使用）
-	InvitationEmailFrom              string // 差出人（オプション、既存のSMTP_FROMをオーバーライド）
+	InvitationBaseURL               string // Base URL for invitation links (e.g., "http://localhost:8080")
+	InvitationRedirectPath           string // Redirect path after invitation acceptance (e.g., "/reset-password")
+	EnableAutoLoginAfterPasswordReset bool // Enable auto-login after password reset (default: true)
+	InvitationEmailSubjectTemplatePath string // Path to subject template file (optional, uses default template if empty)
+	InvitationEmailBodyTemplatePath   string // Path to body template file (optional, uses default template if empty)
+	InvitationEmailFrom              string // From address (optional, overrides existing SMTP_FROM)
 }
 
-// DefaultConfig はデフォルト設定を返す
-// 注意: RoleCheckerとDeletionHandlerはNewManagerで設定される
+// DefaultConfig returns the default configuration
+// Note: RoleChecker and DeletionHandler are set in NewManager
 func DefaultConfig() *Config {
 	return &Config{
 		InvitationExpiryDuration:        24 * time.Hour,
 		DefaultRole:                     RoleUser,
 		EnableBulkInvite:                true,
 		MaxBulkInviteCount:              100,
-		RoleChecker:                     nil, // NewManagerで設定される
-		DeletionHandler:                 nil, // NewManagerで設定される
-		EmailSender:                     nil, // 実装が必要
-		InvitationBaseURL:               "",  // デフォルトは空文字列（設定が必要）
-		InvitationRedirectPath:          "/reset-password", // デフォルトのリダイレクト先
-		EnableAutoLoginAfterPasswordReset: true, // デフォルトで自動ログインを有効にする
+		RoleChecker:                     nil, // Set in NewManager
+		DeletionHandler:                 nil, // Set in NewManager
+		EmailSender:                     nil, // Implementation required
+		InvitationBaseURL:               "",  // Default is empty string (must be configured)
+		InvitationRedirectPath:          "/reset-password", // Default redirect path
+		EnableAutoLoginAfterPasswordReset: true, // Enable auto-login by default
 	}
 }
 
