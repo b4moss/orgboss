@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 //go:embed templates/invitation_subject.txt

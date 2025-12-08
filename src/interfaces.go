@@ -1,6 +1,6 @@
 package orgboss
 
-import "orgboss/types"
+import "github.com/b4m-oss/orgboss/types"
 
 // インターフェースも types パッケージのものを再エクスポート
 type Storage = types.Storage

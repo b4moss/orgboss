@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // Connect はデータベースに接続し、GORMインスタンスを返す

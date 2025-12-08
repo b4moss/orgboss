@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	
-	"orgboss/internal/email"
-	"orgboss/internal/storage"
+	"github.com/b4m-oss/orgboss/internal/email"
+	"github.com/b4m-oss/orgboss/internal/storage"
 )
 
 // mockEmailSender はテスト用のEmailSenderモック
@@ -857,10 +857,14 @@ func TestGetOrganizationBySignature_正常系_ユニーク制約(t *testing.T) {
 	err = storage.CreateOrganization(ctx, org2)
 	require.NoError(t, err) // インメモリストレージではユニーク制約がチェックされない
 	
-	// GetOrganizationBySignatureが最初のOrganizationを返すことを確認
+	// GetOrganizationBySignatureがどちらかのOrganizationを返すことを確認
+	// 注意: mapのイテレーション順序は保証されないため、org1またはorg2のどちらかが返される
 	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "duplicate-signature-12345")
 	require.NoError(t, err)
-	assert.Equal(t, org1.ID, retrievedOrg.ID, "最初に作成されたOrganizationが取得される")
+	assert.NotNil(t, retrievedOrg, "Organizationが取得される")
+	assert.Equal(t, "duplicate-signature-12345", retrievedOrg.Signature, "Signatureが一致する")
+	// org1またはorg2のどちらかが返されることを確認
+	assert.True(t, retrievedOrg.ID == org1.ID || retrievedOrg.ID == org2.ID, "作成したOrganizationのいずれかが取得される")
 }
 
 // ============================================================================

@@ -20,12 +20,12 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 
-	authbossuser "orgboss/internal/authboss"
-	"orgboss/internal/database"
-	"orgboss/internal/email"
-	"orgboss/internal/seed"
-	"orgboss/internal/storage"
-	"orgboss/types"
+	authbossuser "github.com/b4m-oss/orgboss/internal/authboss"
+	"github.com/b4m-oss/orgboss/internal/database"
+	"github.com/b4m-oss/orgboss/internal/email"
+	"github.com/b4m-oss/orgboss/internal/seed"
+	"github.com/b4m-oss/orgboss/internal/storage"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // setupTestDB は既存のPostgreSQLコンテナに接続し、データベース接続を返す

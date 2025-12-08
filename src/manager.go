@@ -9,9 +9,9 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
-	"orgboss/internal/email"
-	"orgboss/internal/storage"
-	"orgboss/internal/validation"
+	"github.com/b4m-oss/orgboss/internal/email"
+	"github.com/b4m-oss/orgboss/internal/storage"
+	"github.com/b4m-oss/orgboss/internal/validation"
 )
 
 // Manager はorgbossのコア機能を提供する

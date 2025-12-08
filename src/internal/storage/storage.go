@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // NewInMemoryStorage は新しいInMemoryStorageを作成する

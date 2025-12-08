@@ -3,7 +3,7 @@ package orgboss
 import (
 	"errors"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // エラーも types パッケージのものを再エクスポート

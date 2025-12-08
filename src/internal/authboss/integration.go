@@ -8,7 +8,7 @@ import (
 	"github.com/aarondl/authboss/v3"
 	"gorm.io/gorm"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // User はAuthbossのUserモデルを拡張した構造体

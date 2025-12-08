@@ -1,6 +1,6 @@
 package orgboss
 
-import "orgboss/types"
+import "github.com/b4m-oss/orgboss/types"
 
 // 型エイリアスで types パッケージの型を再エクスポート
 type Role = types.Role

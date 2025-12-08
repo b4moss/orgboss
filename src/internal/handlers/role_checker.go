@@ -1,6 +1,6 @@
 package handlers
 
-import "orgboss"
+import "github.com/b4m-oss/orgboss"
 
 // DefaultRoleChecker はデフォルトのRoleChecker実装
 type DefaultRoleChecker struct{}

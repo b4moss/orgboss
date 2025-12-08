@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // PostgresStorage はGORMを使ったPostgreSQLストレージの実装

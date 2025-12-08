@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"orgboss"
+	"github.com/b4m-oss/orgboss"
 )
 
 // DefaultDeletionHandler はデフォルトのDeletionHandler実装（論理削除）

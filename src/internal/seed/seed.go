@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 // SeedData はテスト用のシードデータを生成する

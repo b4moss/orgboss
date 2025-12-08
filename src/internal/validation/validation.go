@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 var (
