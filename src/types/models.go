@@ -33,6 +33,7 @@ type Organization struct {
 type User struct {
 	ID             uint   `gorm:"primaryKey"`
 	Email          string `gorm:"uniqueIndex;not null"`
+	Password       string `gorm:"default:''"` // Authbossでハッシュ化されたパスワード（既存データ対応のためnullable）
 	OrganizationID uint   `gorm:"not null;index"`
 	Role           Role   `gorm:"not null;default:'user'"`
 	CreatedAt      time.Time

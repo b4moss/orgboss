@@ -6,6 +6,8 @@ import (
 	"encoding/hex"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	"orgboss/internal/storage"
 	"orgboss/internal/validation"
 )
@@ -48,8 +50,14 @@ func NewManagerWithStorage(config *Config, storage Storage) *Manager {
 		config = DefaultConfig()
 	}
 	
-	// DeletionHandlerのストレージを更新
-	if config.DeletionHandler != nil {
+	// デフォルト実装を設定
+	if config.RoleChecker == nil {
+		config.RoleChecker = NewDefaultRoleChecker()
+	}
+	if config.DeletionHandler == nil {
+		config.DeletionHandler = NewDefaultDeletionHandler(storage)
+	} else {
+		// DeletionHandlerのストレージを更新
 		config.DeletionHandler.SetStorage(storage)
 	}
 	
@@ -82,8 +90,18 @@ func (m *Manager) CreateOrganizationWithUser(ctx context.Context, orgName string
 		return nil, nil, err
 	}
 
-	// User作成（role=manager）
-	user, err := m.createUser(ctx, userEmail, org.ID, RoleManager)
+	// ランダムパスワードを生成してハッシュ化
+	randomPassword, err := generateRandomPassword()
+	if err != nil {
+		return nil, nil, err
+	}
+	hashedPassword, err := hashPassword(randomPassword)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// User作成（role=manager, ランダムパスワード）
+	user, err := m.createUserWithPassword(ctx, userEmail, org.ID, RoleManager, hashedPassword)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -163,6 +181,8 @@ func (m *Manager) InviteUsers(ctx context.Context, orgID uint, emails []string) 
 }
 
 // AcceptInvitation は招待を承諾する
+// この時点ではランダムパスワードを生成してハッシュ化して保存するが、
+// Invitationのstatusはpendingのまま（パスワード更新時にacceptedになる）
 func (m *Manager) AcceptInvitation(ctx context.Context, token string) (*User, error) {
 	// トークン検証（Invitation検索）
 	invitation, err := m.storage.GetInvitationByToken(ctx, token)
@@ -185,14 +205,19 @@ func (m *Manager) AcceptInvitation(ctx context.Context, token string) (*User, er
 
 	// トランザクション開始（インメモリ実装のため、実際のトランザクションはなし）
 
-	// Invitation更新（status=accepted）
-	invitation.Status = InvitationStatusAccepted
-	if err := m.storage.UpdateInvitation(ctx, invitation); err != nil {
+	// ランダムパスワードを生成してハッシュ化
+	randomPassword, err := generateRandomPassword()
+	if err != nil {
+		return nil, err
+	}
+	hashedPassword, err := hashPassword(randomPassword)
+	if err != nil {
 		return nil, err
 	}
 
-	// User作成（organization_id, role=user）
-	user, err := m.createUser(ctx, invitation.Email, invitation.OrganizationID, RoleUser)
+	// User作成（organization_id, role=user, ランダムパスワード）
+	// Invitationのstatusはpendingのまま（パスワード更新時にacceptedになる）
+	user, err := m.createUserWithPassword(ctx, invitation.Email, invitation.OrganizationID, RoleUser, hashedPassword)
 	if err != nil {
 		return nil, err
 	}
@@ -349,6 +374,57 @@ func (m *Manager) ResendInvitation(ctx context.Context, invitationID uint, orgID
 	return nil
 }
 
+// UpdatePassword はユーザーのパスワードを更新する
+// パスワード更新時に、該当するInvitationをacceptedにする
+func (m *Manager) UpdatePassword(ctx context.Context, userID uint, orgID uint, newPassword string) error {
+	// User取得
+	user, err := m.storage.GetUser(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// 権限チェック（自分のみ更新可能）
+	if err := m.ValidateOrganizationAccess(ctx, userID, orgID); err != nil {
+		return err
+	}
+
+	// organization_id一致確認
+	if user.OrganizationID != orgID {
+		return ErrOrganizationAccessDenied
+	}
+
+	// パスワードをハッシュ化
+	hashedPassword, err := hashPassword(newPassword)
+	if err != nil {
+		return err
+	}
+
+	// Userのパスワードを更新
+	user.Password = hashedPassword
+	user.UpdatedAt = time.Now()
+	if err := m.storage.UpdateUser(ctx, user); err != nil {
+		return err
+	}
+
+	// 該当するInvitationを探してacceptedにする
+	invitations, err := m.storage.GetInvitationsByOrganizationID(ctx, orgID)
+	if err != nil {
+		return err
+	}
+
+	for _, invitation := range invitations {
+		if invitation.Email == user.Email && invitation.Status == InvitationStatusPending {
+			invitation.Status = InvitationStatusAccepted
+			if err := m.storage.UpdateInvitation(ctx, invitation); err != nil {
+				return err
+			}
+			break
+		}
+	}
+
+	return nil
+}
+
 // UpdateProfile はユーザーのプロフィールを更新する
 // userIDは更新対象のユーザーID、orgIDは組織ID
 // 自分のみ更新可能（userIDとorgIDで自分自身を確認）
@@ -494,10 +570,16 @@ func (m *Manager) createOrganization(ctx context.Context, name string) (*Organiz
 	return org, nil
 }
 
-// createUser はUserを作成するヘルパーメソッド
+// createUser はUserを作成するヘルパーメソッド（パスワードなし）
 func (m *Manager) createUser(ctx context.Context, email string, orgID uint, role Role) (*User, error) {
+	return m.createUserWithPassword(ctx, email, orgID, role, "")
+}
+
+// createUserWithPassword はUserを作成するヘルパーメソッド（パスワード付き）
+func (m *Manager) createUserWithPassword(ctx context.Context, email string, orgID uint, role Role, hashedPassword string) (*User, error) {
 	user := &User{
 		Email:          email,
+		Password:       hashedPassword,
 		OrganizationID: orgID,
 		Role:           role,
 		CreatedAt:      time.Now(),
@@ -507,6 +589,24 @@ func (m *Manager) createUser(ctx context.Context, email string, orgID uint, role
 		return nil, err
 	}
 	return user, nil
+}
+
+// generateRandomPassword はランダムなパスワードを生成する（32バイト、64文字の16進数）
+func generateRandomPassword() (string, error) {
+	bytes := make([]byte, 32)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
+}
+
+// hashPassword はパスワードをbcryptでハッシュ化する
+func hashPassword(password string) (string, error) {
+	hashedBytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hashedBytes), nil
 }
 
 // createInvitation はInvitationを作成するヘルパーメソッド
