@@ -179,7 +179,7 @@ func (s *SMTPEmailSender) loadDefaultBodyTemplate() {
 	s.bodyTemplate, err = template.New("body").Parse(defaultBodyTemplate)
 	if err != nil {
 		// パースエラーの場合はフォールバック
-		s.bodyTemplate, _ = template.New("body").Parse(`こんにちは、
+		s.bodyTemplate, _ = template.New("body").Parse(`こんにちは、{{.Email}}
 
 あなたは組織への招待を受けました。
 
