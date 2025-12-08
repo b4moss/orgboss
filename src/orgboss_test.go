@@ -14,7 +14,7 @@ import (
 // mockEmailSender はテスト用のEmailSenderモック
 type mockEmailSender struct{}
 
-func (m *mockEmailSender) SendInvitation(ctx context.Context, invitation *Invitation) error {
+func (m *mockEmailSender) SendInvitation(ctx context.Context, invitation *Invitation, invitationURL string) error {
 	return nil
 }
 
@@ -27,6 +27,61 @@ func TestTestifyAssert(t *testing.T) {
 func TestTestifyRequire(t *testing.T) {
 	require.Equal(t, 2, 2, "Requireアサーションが動作することを確認")
 	require.NotEmpty(t, "test", "NotEmptyアサーションが動作することを確認")
+}
+
+// ============================================================================
+// NewManager のテスト
+// ============================================================================
+
+func TestNewManager_正常系(t *testing.T) {
+	config := DefaultConfig()
+	m := NewManager(config)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.NotNil(t, m.config, "Configが設定される")
+	assert.NotNil(t, m.storage, "Storageが設定される")
+}
+
+func TestNewManager_Configがnilの場合(t *testing.T) {
+	m := NewManager(nil)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.NotNil(t, m.config, "デフォルトConfigが設定される")
+}
+
+func TestNewManager_DeletionHandlerが既に設定されている場合(t *testing.T) {
+	config := DefaultConfig()
+	storage := storage.NewInMemoryStorage()
+	config.DeletionHandler = NewDefaultDeletionHandler(storage)
+	m := NewManager(config)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.NotNil(t, m.config.DeletionHandler, "DeletionHandlerが設定される")
+}
+
+// ============================================================================
+// NewManagerWithStorage のテスト
+// ============================================================================
+
+func TestNewManagerWithStorage_正常系(t *testing.T) {
+	config := DefaultConfig()
+	storage := storage.NewInMemoryStorage()
+	m := NewManagerWithStorage(config, storage)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.Equal(t, storage, m.storage, "指定されたStorageが設定される")
+}
+
+func TestNewManagerWithStorage_Configがnilの場合(t *testing.T) {
+	storage := storage.NewInMemoryStorage()
+	m := NewManagerWithStorage(nil, storage)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.NotNil(t, m.config, "デフォルトConfigが設定される")
+}
+
+func TestNewManagerWithStorage_DeletionHandlerが既に設定されている場合(t *testing.T) {
+	config := DefaultConfig()
+	storage := storage.NewInMemoryStorage()
+	config.DeletionHandler = NewDefaultDeletionHandler(storage)
+	m := NewManagerWithStorage(config, storage)
+	assert.NotNil(t, m, "Managerが作成される")
+	assert.NotNil(t, m.config.DeletionHandler, "DeletionHandlerが設定される")
 }
 
 // ============================================================================
@@ -54,20 +109,45 @@ func TestCreateOrganizationWithUser_正常系(t *testing.T) {
 	assert.NotEmpty(t, org.Signature, "Signatureが設定される")
 }
 
-func TestCreateOrganizationWithUser_異常系_Organization作成失敗(t *testing.T) {
+func TestCreateOrganizationWithUser_異常系_空の組織名(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
-	// 空の組織名で失敗することを想定（実装後に適切なエラーケースに変更）
 	org, user, err := m.CreateOrganizationWithUser(ctx, "", "user@example.com")
 
-	// 実装が完了していないため、現時点ではエラーが返されるべき
-	// 実装後は適切なエラーチェックに変更
-	if err == nil {
-		// 実装が完了していない場合、nilが返される
-		assert.Nil(t, org, "Organizationが作成されない")
-		assert.Nil(t, user, "Userも作成されない")
+	assert.Error(t, err, "エラーが返される")
+	assert.Nil(t, org, "Organizationが作成されない")
+	assert.Nil(t, user, "Userも作成されない")
+}
+
+func TestCreateOrganizationWithUser_異常系_無効なメールアドレス(t *testing.T) {
+	ctx := context.Background()
+	m := NewManager(DefaultConfig())
+
+	org, user, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "invalid-email")
+
+	assert.Error(t, err, "エラーが返される")
+	assert.Nil(t, org, "Organizationが作成されない")
+	assert.Nil(t, user, "Userも作成されない")
+}
+
+func TestCreateOrganizationWithUser_異常系_フックエラー(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+	
+	// BeforeOrganizationCreateフックでエラーを返す
+	m.hooks.BeforeOrganizationCreate = func(ctx context.Context, data interface{}) error {
+		return ErrPermissionDenied
 	}
+
+	org, user, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "user@example.com")
+
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrPermissionDenied, err, "フックエラーが返される")
+	assert.Nil(t, org, "Organizationが作成されない")
+	assert.Nil(t, user, "Userも作成されない")
 }
 
 // ============================================================================
@@ -778,4 +858,676 @@ func TestGetOrganizationBySignature_正常系_ユニーク制約(t *testing.T) {
 	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "duplicate-signature-12345")
 	require.NoError(t, err)
 	assert.Equal(t, org1.ID, retrievedOrg.ID, "最初に作成されたOrganizationが取得される")
+}
+
+// ============================================================================
+// UpdatePassword のテスト
+// ============================================================================
+
+func TestUpdatePassword_正常系(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, user, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "user@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成して、パスワード更新時にacceptedになることを確認
+	invitation, err := m.InviteUser(ctx, org.ID, user.Email)
+	require.NoError(t, err)
+	assert.Equal(t, InvitationStatusPending, invitation.Status, "招待はpending状態")
+
+	// パスワードを更新
+	newPassword := "newpassword123"
+	err = m.UpdatePassword(ctx, user.ID, org.ID, newPassword)
+	require.NoError(t, err, "パスワードが正常に更新される")
+
+	// 招待がacceptedになっていることを確認
+	updatedInvitation, err := m.storage.GetInvitationByToken(ctx, invitation.Token)
+	require.NoError(t, err)
+	assert.Equal(t, InvitationStatusAccepted, updatedInvitation.Status, "招待がacceptedになる")
+}
+
+func TestUpdatePassword_異常系_権限がない(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+
+	// 事前に2つのOrganizationとUserを作成
+	_, user1, err := m.CreateOrganizationWithUser(ctx, "テスト組織1", "user1@example.com")
+	require.NoError(t, err)
+
+	org2, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織2", "user2@example.com")
+	require.NoError(t, err)
+
+	// user1がorg2のIDでパスワードを更新しようとする（権限なし）
+	// user1はorg1に属しているので、org2のIDで更新しようとするとエラーになる
+	err = m.UpdatePassword(ctx, user1.ID, org2.ID, "newpassword123")
+	assert.Error(t, err, "権限エラーが返される")
+	assert.Equal(t, ErrOrganizationAccessDenied, err, "権限エラーが返される")
+}
+
+func TestUpdatePassword_異常系_ユーザーが存在しない(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	m := NewManager(config)
+
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "user@example.com")
+	require.NoError(t, err)
+
+	// 存在しないユーザーIDでパスワードを更新
+	nonExistentUserID := uint(99999)
+	err = m.UpdatePassword(ctx, nonExistentUserID, org.ID, "newpassword123")
+	assert.Error(t, err, "エラーが返される")
+}
+
+// ============================================================================
+// GetInvitationURL のテスト
+// ============================================================================
+
+func TestGetInvitationURL_正常系(t *testing.T) {
+	config := DefaultConfig()
+	config.InvitationBaseURL = "http://localhost:8080"
+	m := NewManager(config)
+
+	token := "test-token-12345"
+	url := m.GetInvitationURL(token)
+
+	expectedURL := "http://localhost:8080/invite/test-token-12345"
+	assert.Equal(t, expectedURL, url, "正しいURLが生成される")
+}
+
+func TestGetInvitationURL_BaseURLが空の場合(t *testing.T) {
+	config := DefaultConfig()
+	config.InvitationBaseURL = ""
+	m := NewManager(config)
+
+	token := "test-token-12345"
+	url := m.GetInvitationURL(token)
+
+	assert.Equal(t, "", url, "空文字列が返される")
+}
+
+// ============================================================================
+// ValidateInvitationTokenAndGetRedirectURL のテスト
+// ============================================================================
+
+func TestValidateInvitationTokenAndGetRedirectURL_正常系(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	config.InvitationRedirectPath = "/reset-password"
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "manager@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成
+	invitation, err := m.InviteUser(ctx, org.ID, "invited@example.com")
+	require.NoError(t, err)
+
+	// トークンを検証してリダイレクトURLを取得
+	redirectURL, err := m.ValidateInvitationTokenAndGetRedirectURL(ctx, invitation.Token)
+	require.NoError(t, err, "トークンが正常に検証される")
+	assert.Contains(t, redirectURL, "/reset-password", "リダイレクトパスが含まれる")
+	assert.Contains(t, redirectURL, invitation.Token, "トークンが含まれる")
+}
+
+func TestValidateInvitationTokenAndGetRedirectURL_デフォルトパス(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	config.InvitationRedirectPath = "" // 空文字列（デフォルトパスを使用）
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "manager@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成
+	invitation, err := m.InviteUser(ctx, org.ID, "invited@example.com")
+	require.NoError(t, err)
+
+	// トークンを検証してリダイレクトURLを取得
+	redirectURL, err := m.ValidateInvitationTokenAndGetRedirectURL(ctx, invitation.Token)
+	require.NoError(t, err, "トークンが正常に検証される")
+	assert.Contains(t, redirectURL, "/reset-password", "デフォルトのリダイレクトパスが使用される")
+	assert.Contains(t, redirectURL, invitation.Token, "トークンが含まれる")
+}
+
+func TestValidateInvitationTokenAndGetRedirectURL_異常系_無効なトークン(t *testing.T) {
+	ctx := context.Background()
+	m := NewManager(DefaultConfig())
+
+	invalidToken := "invalid-token-12345"
+	_, err := m.ValidateInvitationTokenAndGetRedirectURL(ctx, invalidToken)
+
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrInvalidToken, err, "無効なトークンエラーが返される")
+}
+
+func TestValidateInvitationTokenAndGetRedirectURL_異常系_有効期限切れ(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "manager@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成
+	invitation, err := m.InviteUser(ctx, org.ID, "invited@example.com")
+	require.NoError(t, err)
+
+	// 有効期限を過去に設定
+	invitation.ExpiresAt = time.Now().Add(-24 * time.Hour)
+	err = m.storage.UpdateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	// トークンを検証（有効期限切れ）
+	_, err = m.ValidateInvitationTokenAndGetRedirectURL(ctx, invitation.Token)
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrInvitationExpired, err, "有効期限切れエラーが返される")
+}
+
+func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にaccepted(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "manager@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成
+	invitation, err := m.InviteUser(ctx, org.ID, "invited@example.com")
+	require.NoError(t, err)
+
+	// 招待をacceptedに変更
+	invitation.Status = InvitationStatusAccepted
+	err = m.storage.UpdateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	// トークンを検証（既にaccepted）
+	_, err = m.ValidateInvitationTokenAndGetRedirectURL(ctx, invitation.Token)
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrInvitationAlreadyAccepted, err, "既にacceptedエラーが返される")
+}
+
+func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にrejected(t *testing.T) {
+	ctx := context.Background()
+	config := DefaultConfig()
+	config.EmailSender = &mockEmailSender{}
+	m := NewManager(config)
+
+	// 事前にOrganizationとUserを作成
+	org, _, err := m.CreateOrganizationWithUser(ctx, "テスト組織", "manager@example.com")
+	require.NoError(t, err)
+
+	// 招待を作成
+	invitation, err := m.InviteUser(ctx, org.ID, "invited@example.com")
+	require.NoError(t, err)
+
+	// 招待をrejectedに変更
+	invitation.Status = InvitationStatusRejected
+	err = m.storage.UpdateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	// トークンを検証（既にrejected）
+	_, err = m.ValidateInvitationTokenAndGetRedirectURL(ctx, invitation.Token)
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrInvitationAlreadyRejected, err, "既にrejectedエラーが返される")
+}
+
+// ============================================================================
+// SetStorage のテスト
+// ============================================================================
+
+func TestSetStorage_正常系(t *testing.T) {
+	storage1 := storage.NewInMemoryStorage()
+	handler := NewDefaultDeletionHandler(storage1)
+
+	storage2 := storage.NewInMemoryStorage()
+	handler.SetStorage(storage2)
+
+	// SetStorageが正常に動作することを確認（エラーが発生しない）
+	assert.NotNil(t, handler, "ハンドラーが作成される")
+}
+
+// ============================================================================
+// VersionInfo のテスト
+// ============================================================================
+
+func TestVersionInfo_正常系(t *testing.T) {
+	version := VersionInfo()
+	assert.Equal(t, Version, version, "バージョン情報が正しく返される")
+	assert.NotEmpty(t, version, "バージョン情報が空でない")
+}
+
+// ============================================================================
+// InMemoryStorage のテスト
+// ============================================================================
+
+func TestNewInMemoryStorage_正常系(t *testing.T) {
+	storage := NewInMemoryStorage()
+	assert.NotNil(t, storage, "ストレージが作成される")
+}
+
+func TestInMemoryStorage_CreateOrganization_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	org := &Organization{
+		Name:      "テスト組織",
+		Signature: "test-signature",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err := storage.CreateOrganization(ctx, org)
+	require.NoError(t, err, "Organizationが作成される")
+	assert.NotZero(t, org.ID, "IDが設定される")
+}
+
+func TestInMemoryStorage_GetOrganization_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	org := &Organization{
+		Name:      "テスト組織",
+		Signature: "test-signature",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := storage.CreateOrganization(ctx, org)
+	require.NoError(t, err)
+
+	retrievedOrg, err := storage.GetOrganization(ctx, org.ID)
+	require.NoError(t, err, "Organizationが取得される")
+	assert.Equal(t, org.ID, retrievedOrg.ID, "正しいOrganizationが取得される")
+}
+
+func TestInMemoryStorage_GetOrganization_異常系_存在しない(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	_, err := storage.GetOrganization(ctx, 99999)
+	assert.Error(t, err, "エラーが返される")
+	assert.Equal(t, ErrOrganizationNotFound, err, "OrganizationNotFoundエラーが返される")
+}
+
+func TestInMemoryStorage_UpdateOrganization_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	org := &Organization{
+		Name:      "テスト組織",
+		Signature: "test-signature",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := storage.CreateOrganization(ctx, org)
+	require.NoError(t, err)
+
+	org.Name = "更新された組織名"
+	err = storage.UpdateOrganization(ctx, org)
+	require.NoError(t, err, "Organizationが更新される")
+
+	updatedOrg, err := storage.GetOrganization(ctx, org.ID)
+	require.NoError(t, err)
+	assert.Equal(t, "更新された組織名", updatedOrg.Name, "名前が更新される")
+}
+
+func TestInMemoryStorage_DeleteOrganization_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	org := &Organization{
+		Name:      "テスト組織",
+		Signature: "test-signature",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := storage.CreateOrganization(ctx, org)
+	require.NoError(t, err)
+
+	err = storage.DeleteOrganization(ctx, org.ID)
+	require.NoError(t, err, "Organizationが削除される")
+
+	_, err = storage.GetOrganization(ctx, org.ID)
+	assert.Error(t, err, "削除後は取得できない")
+}
+
+func TestInMemoryStorage_ListOrganizations_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	org1 := &Organization{
+		Name:      "組織1",
+		Signature: "signature1",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	org2 := &Organization{
+		Name:      "組織2",
+		Signature: "signature2",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	err := storage.CreateOrganization(ctx, org1)
+	require.NoError(t, err)
+	err = storage.CreateOrganization(ctx, org2)
+	require.NoError(t, err)
+
+	orgs, err := storage.ListOrganizations(ctx)
+	require.NoError(t, err, "Organization一覧が取得される")
+	assert.GreaterOrEqual(t, len(orgs), 2, "2つ以上のOrganizationが取得される")
+}
+
+func TestInMemoryStorage_CreateUser_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user := &User{
+		Email:          "user@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	err := storage.CreateUser(ctx, user)
+	require.NoError(t, err, "Userが作成される")
+	assert.NotZero(t, user.ID, "IDが設定される")
+}
+
+func TestInMemoryStorage_GetUser_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user := &User{
+		Email:          "user@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	err := storage.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	retrievedUser, err := storage.GetUser(ctx, user.ID)
+	require.NoError(t, err, "Userが取得される")
+	assert.Equal(t, user.ID, retrievedUser.ID, "正しいUserが取得される")
+}
+
+func TestInMemoryStorage_GetUserByEmail_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user := &User{
+		Email:          "user@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	err := storage.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	retrievedUser, err := storage.GetUserByEmail(ctx, "user@example.com")
+	require.NoError(t, err, "Userが取得される")
+	assert.Equal(t, user.Email, retrievedUser.Email, "正しいUserが取得される")
+}
+
+func TestInMemoryStorage_GetUsersByOrganizationID_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user1 := &User{
+		Email:          "user1@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	user2 := &User{
+		Email:          "user2@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+
+	err := storage.CreateUser(ctx, user1)
+	require.NoError(t, err)
+	err = storage.CreateUser(ctx, user2)
+	require.NoError(t, err)
+
+	users, err := storage.GetUsersByOrganizationID(ctx, 1)
+	require.NoError(t, err, "User一覧が取得される")
+	assert.GreaterOrEqual(t, len(users), 2, "2つ以上のUserが取得される")
+}
+
+func TestInMemoryStorage_UpdateUser_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user := &User{
+		Email:          "user@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	err := storage.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	user.Role = RoleManager
+	err = storage.UpdateUser(ctx, user)
+	require.NoError(t, err, "Userが更新される")
+
+	updatedUser, err := storage.GetUser(ctx, user.ID)
+	require.NoError(t, err)
+	assert.Equal(t, RoleManager, updatedUser.Role, "ロールが更新される")
+}
+
+func TestInMemoryStorage_DeleteUser_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	user := &User{
+		Email:          "user@example.com",
+		Password:       "hashed-password",
+		OrganizationID: 1,
+		Role:           RoleUser,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+	err := storage.CreateUser(ctx, user)
+	require.NoError(t, err)
+
+	err = storage.DeleteUser(ctx, user.ID)
+	require.NoError(t, err, "Userが削除される")
+
+	_, err = storage.GetUser(ctx, user.ID)
+	assert.Error(t, err, "削除後は取得できない")
+}
+
+func TestInMemoryStorage_CreateInvitation_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+
+	err := storage.CreateInvitation(ctx, invitation)
+	require.NoError(t, err, "Invitationが作成される")
+	assert.NotZero(t, invitation.ID, "IDが設定される")
+}
+
+func TestInMemoryStorage_GetInvitationByToken_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	err := storage.CreateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	retrievedInvitation, err := storage.GetInvitationByToken(ctx, "test-token")
+	require.NoError(t, err, "Invitationが取得される")
+	assert.Equal(t, invitation.Token, retrievedInvitation.Token, "正しいInvitationが取得される")
+}
+
+func TestInMemoryStorage_GetInvitationByID_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	err := storage.CreateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	retrievedInvitation, err := storage.GetInvitationByID(ctx, invitation.ID)
+	require.NoError(t, err, "Invitationが取得される")
+	assert.Equal(t, invitation.ID, retrievedInvitation.ID, "正しいInvitationが取得される")
+}
+
+func TestInMemoryStorage_GetInvitationsByOrganizationID_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation1 := &Invitation{
+		Email:          "invited1@example.com",
+		OrganizationID: 1,
+		Token:          "test-token-1",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	invitation2 := &Invitation{
+		Email:          "invited2@example.com",
+		OrganizationID: 1,
+		Token:          "test-token-2",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+
+	err := storage.CreateInvitation(ctx, invitation1)
+	require.NoError(t, err)
+	err = storage.CreateInvitation(ctx, invitation2)
+	require.NoError(t, err)
+
+	invitations, err := storage.GetInvitationsByOrganizationID(ctx, 1)
+	require.NoError(t, err, "Invitation一覧が取得される")
+	assert.GreaterOrEqual(t, len(invitations), 2, "2つ以上のInvitationが取得される")
+}
+
+func TestInMemoryStorage_GetInvitationsByEmail_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation1 := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token-1",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	invitation2 := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 2,
+		Token:          "test-token-2",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+
+	err := storage.CreateInvitation(ctx, invitation1)
+	require.NoError(t, err)
+	err = storage.CreateInvitation(ctx, invitation2)
+	require.NoError(t, err)
+
+	invitations, err := storage.GetInvitationsByEmail(ctx, "invited@example.com")
+	require.NoError(t, err, "Invitation一覧が取得される")
+	assert.GreaterOrEqual(t, len(invitations), 2, "2つ以上のInvitationが取得される")
+}
+
+func TestInMemoryStorage_UpdateInvitation_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	err := storage.CreateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	invitation.Status = InvitationStatusAccepted
+	err = storage.UpdateInvitation(ctx, invitation)
+	require.NoError(t, err, "Invitationが更新される")
+
+	updatedInvitation, err := storage.GetInvitationByToken(ctx, "test-token")
+	require.NoError(t, err)
+	assert.Equal(t, InvitationStatusAccepted, updatedInvitation.Status, "ステータスが更新される")
+}
+
+func TestInMemoryStorage_DeleteInvitation_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := NewInMemoryStorage()
+
+	invitation := &Invitation{
+		Email:          "invited@example.com",
+		OrganizationID: 1,
+		Token:          "test-token",
+		ExpiresAt:      time.Now().Add(24 * time.Hour),
+		Status:         InvitationStatusPending,
+		CreatedAt:      time.Now(),
+	}
+	err := storage.CreateInvitation(ctx, invitation)
+	require.NoError(t, err)
+
+	err = storage.DeleteInvitation(ctx, invitation.ID)
+	require.NoError(t, err, "Invitationが削除される")
+
+	_, err = storage.GetInvitationByToken(ctx, "test-token")
+	assert.Error(t, err, "削除後は取得できない")
 }

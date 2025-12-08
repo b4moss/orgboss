@@ -11,6 +11,8 @@ type Config struct {
 	RoleChecker              RoleChecker
 	DeletionHandler          DeletionHandler
 	EmailSender              EmailSender
+	InvitationBaseURL        string // 招待URLのベースURL（例: "http://localhost:8080"）
+	InvitationRedirectPath   string // リダイレクト先のパス（例: "/reset-password"）
 }
 
 // DefaultConfig はデフォルト設定を返す
@@ -24,6 +26,8 @@ func DefaultConfig() *Config {
 		RoleChecker:              nil, // NewManagerで設定される
 		DeletionHandler:          nil, // NewManagerで設定される
 		EmailSender:              nil, // 実装が必要
+		InvitationBaseURL:        "",  // デフォルトは空文字列（設定が必要）
+		InvitationRedirectPath:   "/reset-password", // デフォルトのリダイレクト先
 	}
 }
 

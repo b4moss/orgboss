@@ -45,6 +45,8 @@ type DeletionHandler interface {
 
 // EmailSender はメール送信を提供するインターフェース
 type EmailSender interface {
-	SendInvitation(ctx context.Context, invitation *Invitation) error
+	// SendInvitation は招待メールを送信する
+	// invitationURLが空文字列でない場合、メール本文にURLを含める
+	SendInvitation(ctx context.Context, invitation *Invitation, invitationURL string) error
 }
 

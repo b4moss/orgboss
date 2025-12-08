@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -147,7 +148,9 @@ func (m *Manager) InviteUser(ctx context.Context, orgID uint, email string) (*In
 	if m.config.EmailSender == nil {
 		return nil, ErrEmailSendFailed
 	}
-	if err := m.config.EmailSender.SendInvitation(ctx, invitation); err != nil {
+	// 招待URLを生成
+	invitationURL := m.GetInvitationURL(token)
+	if err := m.config.EmailSender.SendInvitation(ctx, invitation, invitationURL); err != nil {
 		return nil, ErrEmailSendFailed
 	}
 
@@ -367,7 +370,9 @@ func (m *Manager) ResendInvitation(ctx context.Context, invitationID uint, orgID
 	if m.config.EmailSender == nil {
 		return ErrEmailSendFailed
 	}
-	if err := m.config.EmailSender.SendInvitation(ctx, invitation); err != nil {
+	// 招待URLを生成
+	invitationURL := m.GetInvitationURL(token)
+	if err := m.config.EmailSender.SendInvitation(ctx, invitation, invitationURL); err != nil {
 		return ErrEmailSendFailed
 	}
 
@@ -658,5 +663,44 @@ func (m *Manager) CalculateExpiry() time.Time {
 // IsExpired は有効期限切れかチェックする
 func (m *Manager) IsExpired(expiresAt time.Time) bool {
 	return time.Now().After(expiresAt)
+}
+
+// GetInvitationURL は招待URLを生成する
+func (m *Manager) GetInvitationURL(token string) string {
+	if m.config.InvitationBaseURL == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/invite/%s", m.config.InvitationBaseURL, token)
+}
+
+// ValidateInvitationTokenAndGetRedirectURL はトークンを検証し、リダイレクト先URLを返す
+func (m *Manager) ValidateInvitationTokenAndGetRedirectURL(ctx context.Context, token string) (string, error) {
+	// トークン検証（Invitation検索）
+	invitation, err := m.storage.GetInvitationByToken(ctx, token)
+	if err != nil {
+		return "", ErrInvalidToken
+	}
+
+	// 有効期限チェック
+	if m.IsExpired(invitation.ExpiresAt) {
+		return "", ErrInvitationExpired
+	}
+
+	// 既にacceptedまたはrejectedの場合、エラーが返される
+	if invitation.Status == InvitationStatusAccepted {
+		return "", ErrInvitationAlreadyAccepted
+	}
+	if invitation.Status == InvitationStatusRejected {
+		return "", ErrInvitationAlreadyRejected
+	}
+
+	// リダイレクト先URLを生成
+	redirectPath := m.config.InvitationRedirectPath
+	if redirectPath == "" {
+		redirectPath = "/reset-password"
+	}
+	redirectURL := fmt.Sprintf("%s?token=%s", redirectPath, token)
+
+	return redirectURL, nil
 }
 

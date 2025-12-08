@@ -32,10 +32,10 @@ func NewSMTPEmailSender() *SMTPEmailSender {
 }
 
 // SendInvitation は招待メールを送信する
-func (s *SMTPEmailSender) SendInvitation(ctx context.Context, invitation *types.Invitation) error {
+func (s *SMTPEmailSender) SendInvitation(ctx context.Context, invitation *types.Invitation, invitationURL string) error {
 	// メールの件名と本文を構築
 	subject := "組織への招待"
-	body := s.buildInvitationEmailBody(invitation)
+	body := s.buildInvitationEmailBody(invitation, invitationURL)
 
 	// メールヘッダーと本文を構築
 	message := s.buildEmailMessage(invitation.Email, subject, body)
@@ -51,9 +51,24 @@ func (s *SMTPEmailSender) SendInvitation(ctx context.Context, invitation *types.
 }
 
 // buildInvitationEmailBody は招待メールの本文を構築する
-func (s *SMTPEmailSender) buildInvitationEmailBody(invitation *types.Invitation) string {
-	// 実際のアプリケーションでは、招待URLを構築する必要があります
-	// ここではテスト用のシンプルな形式を使用します
+func (s *SMTPEmailSender) buildInvitationEmailBody(invitation *types.Invitation, invitationURL string) string {
+	if invitationURL != "" {
+		// URLが提供されている場合、クリック可能なリンクを含める
+		return fmt.Sprintf(`こんにちは、
+
+あなたは組織への招待を受けました。
+
+以下のリンクをクリックして、パスワードを設定してください：
+%s
+
+有効期限: %s
+
+よろしくお願いいたします。`,
+			invitationURL,
+			invitation.ExpiresAt.Format("2006-01-02 15:04:05"),
+		)
+	}
+	// URLが提供されていない場合、従来の形式（後方互換性のため）
 	return fmt.Sprintf(`こんにちは、
 
 あなたは組織への招待を受けました。

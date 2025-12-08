@@ -11,7 +11,7 @@ help:
 	@echo "  make db          - Postgresに接続"
 	@echo "  make shell       - アプリコンテナのシェルに入る"
 	@echo "  make restart     - 開発環境を再起動"
-	@echo "  make test        - テストを実行"
+	@echo "  make test [COV=TRUE] - テストを実行（COV=TRUEでカバレッジを有効化）"
 	@echo "  make test-integration [KEEP=1] - 統合テストを実行（Dockerが必要、Authbossテスト含む）"
 	@echo "                                    KEEP=1を指定するとテストデータを保持"
 	@echo "  make fmt         - コードをフォーマット"
@@ -52,8 +52,15 @@ shell:
 restart: down up
 
 # テストを実行
+# COV=TRUEを指定するとカバレッジを有効化（例: make test COV=TRUE）
+# テストがあるパッケージ（orgboss）のみをカバレッジに含める
 test:
-	cd src && docker compose exec orgboss-dev go test -short ./...
+	@if [ "$(COV)" = "TRUE" ] || [ "$(COV)" = "true" ] || [ "$(cov)" = "TRUE" ] || [ "$(cov)" = "true" ]; then \
+		echo "カバレッジを有効化してテストを実行します（テストがあるパッケージのみ）..."; \
+		cd src && docker compose exec orgboss-dev sh -c "go test -short -coverprofile=coverage.out . && go tool cover -html=coverage.out -o coverage.html"; \
+	else \
+		cd src && docker compose exec orgboss-dev go test -short ./...; \
+	fi
 
 # 統合テストを実行（Dockerが必要、Authbossテスト含む）
 # KEEP=1を指定するとテストデータを保持（例: make test-integration KEEP=1）
