@@ -1,0 +1,44 @@
+services:
+  orgboss-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: air
+    volumes:
+      - .:/app
+      - go-pkg:/go/pkg/mod
+    ports:
+      - "8080:8080"
+    environment:
+      - GO_ENV=development
+      - DATABASE_URL=postgres://orgboss:orgboss@orgboss-db:5432/orgboss?sslmode=disable
+      - DB_HOST=orgboss-db
+      - DB_PORT=5432
+      - DB_USER=orgboss
+      - DB_PASSWORD=orgboss
+      - DB_NAME=orgboss
+    depends_on:
+      - orgboss-db
+    networks:
+      - orgboss-network
+
+  orgboss-db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=orgboss
+      - POSTGRES_PASSWORD=orgboss
+      - POSTGRES_DB=orgboss
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - orgboss-network
+
+volumes:
+  go-pkg:
+  postgres-data:
+
+networks:
+  orgboss-network:
+    driver: bridge

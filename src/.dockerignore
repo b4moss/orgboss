@@ -1,0 +1,11 @@
+.git
+.gitignore
+.dockerignore
+*.md
+tmp/
+testdata/
+vendor/
+.env
+.env.local
+*.log
+

@@ -1,0 +1,53 @@
+package types
+
+import "time"
+
+// Role はユーザーのロールを表す
+type Role string
+
+const (
+	RoleManager Role = "manager"
+	RoleUser    Role = "user"
+)
+
+// InvitationStatus は招待のステータスを表す
+type InvitationStatus string
+
+const (
+	InvitationStatusPending  InvitationStatus = "pending"
+	InvitationStatusAccepted InvitationStatus = "accepted"
+	InvitationStatusRejected InvitationStatus = "rejected"
+	InvitationStatusExpired  InvitationStatus = "expired"
+)
+
+// Organization は組織を表す
+type Organization struct {
+	ID        uint      `gorm:"primaryKey"`
+	Name      string    `gorm:"not null"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	DeletedAt *time.Time `gorm:"index"`
+}
+
+// User はユーザーを表す（AuthbossのUserモデルを拡張）
+type User struct {
+	ID             uint   `gorm:"primaryKey"`
+	Email          string `gorm:"uniqueIndex;not null"`
+	OrganizationID uint   `gorm:"not null;index"`
+	Role           Role   `gorm:"not null;default:'user'"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      *time.Time `gorm:"index"`
+}
+
+// Invitation は招待を表す
+type Invitation struct {
+	ID             uint            `gorm:"primaryKey"`
+	Email          string          `gorm:"not null;index"`
+	OrganizationID uint            `gorm:"not null;index"`
+	Token          string          `gorm:"uniqueIndex;not null"`
+	ExpiresAt      time.Time       `gorm:"not null"`
+	Status         InvitationStatus `gorm:"not null;default:'pending'"`
+	CreatedAt      time.Time
+}
+
