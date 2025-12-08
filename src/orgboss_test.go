@@ -1531,3 +1531,21 @@ func TestInMemoryStorage_DeleteInvitation_正常系(t *testing.T) {
 	_, err = storage.GetInvitationByToken(ctx, "test-token")
 	assert.Error(t, err, "削除後は取得できない")
 }
+
+// ============================================================================
+// DefaultConfig のテスト
+// ============================================================================
+
+func TestDefaultConfig_EnableAutoLoginAfterPasswordReset(t *testing.T) {
+	config := DefaultConfig()
+	assert.True(t, config.EnableAutoLoginAfterPasswordReset, "デフォルトで自動ログインが有効になっている必要があります")
+}
+
+func TestDefaultConfig_他の設定値(t *testing.T) {
+	config := DefaultConfig()
+	assert.Equal(t, 24*time.Hour, config.InvitationExpiryDuration, "招待の有効期限が24時間に設定されている必要があります")
+	assert.Equal(t, RoleUser, config.DefaultRole, "デフォルトロールがuserに設定されている必要があります")
+	assert.True(t, config.EnableBulkInvite, "バルク招待がデフォルトで有効になっている必要があります")
+	assert.Equal(t, 100, config.MaxBulkInviteCount, "バルク招待の最大数が100に設定されている必要があります")
+	assert.Equal(t, "/reset-password", config.InvitationRedirectPath, "リダイレクトパスが/reset-passwordに設定されている必要があります")
+}

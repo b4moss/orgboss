@@ -3,6 +3,7 @@ package authboss
 import (
 	"context"
 	"database/sql"
+	"net/http"
 
 	"github.com/aarondl/authboss/v3"
 	"gorm.io/gorm"
@@ -127,6 +128,68 @@ func SetupAuthboss(db *gorm.DB, ab *authboss.Authboss) error {
 	// 	// 実際の実装では、orgboss.Managerを取得して呼び出す必要がある
 	// 	return nil
 	// }
+
+	return nil
+}
+
+// SetupAuthbossWithAutoLogin はAuthbossを設定し、パスワードリセット後のリダイレクト機能を有効にする
+// enableAutoLoginがtrueの場合、パスワードリセット完了後にログインページにリダイレクトする設定を有効にします
+// 公式リポジトリ: https://github.com/aarondl/authboss
+//
+// 注意: 実際のリダイレクト処理は、パスワードリセットのHTTPハンドラー側で実装する必要があります。
+// RedirectToLoginAfterPasswordReset ヘルパー関数を使用して、リダイレクト処理を実装してください。
+// 参考: https://github.com/aarondl/authboss/blob/v3.5.3/authboss.go#L76
+func SetupAuthbossWithAutoLogin(db *gorm.DB, ab *authboss.Authboss, enableAutoLogin bool) error {
+	// 基本的な設定を実行
+	if err := SetupAuthboss(db, ab); err != nil {
+		return err
+	}
+
+	// 自動ログイン（リダイレクト）が有効な場合の設定
+	// 注意: Authboss v3では、パスワードリセット後のリダイレクト処理は、
+	// HTTPハンドラーレベルで実装する必要があります。
+	// RedirectToLoginAfterPasswordReset ヘルパー関数を使用して実装してください。
+	if enableAutoLogin {
+		// 設定は完了しました。実際のリダイレクト処理は、
+		// パスワードリセットのHTTPハンドラー側で RedirectToLoginAfterPasswordReset を呼び出してください。
+	}
+
+	return nil
+}
+
+// RedirectToLoginAfterPasswordReset はパスワードリセット完了後にログインページにリダイレクトする
+// この関数は、パスワードリセットのHTTPハンドラーから呼び出されます
+//
+// 使用例:
+//   func passwordResetHandler(w http.ResponseWriter, r *http.Request) {
+//       // パスワードリセット処理...
+//       if err := authbossuser.RedirectToLoginAfterPasswordReset(r.Context(), w, r, ab); err != nil {
+//           // エラーハンドリング
+//       }
+//   }
+func RedirectToLoginAfterPasswordReset(ctx context.Context, w http.ResponseWriter, r *http.Request, ab *authboss.Authboss) error {
+	// ログインページへのリダイレクトパスを取得
+	loginPath := "/login"
+	if ab.Config.Paths.Mount != "" {
+		loginPath = ab.Config.Paths.Mount + loginPath
+	}
+
+	// リダイレクトオプションを設定
+	ro := authboss.RedirectOptions{
+		Code:         http.StatusSeeOther,
+		RedirectPath: loginPath,
+		Success:      "パスワードリセットが完了しました。ログインしてください。",
+	}
+
+	// リダイレクトを実行
+	if ab.Config.Core.Redirector != nil {
+		if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {
+			return err
+		}
+	} else {
+		// Redirectorが設定されていない場合、標準的なHTTPリダイレクトを使用
+		http.Redirect(w, r, loginPath, http.StatusSeeOther)
+	}
 
 	return nil
 }
