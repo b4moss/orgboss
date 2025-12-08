@@ -17,8 +17,12 @@ services:
       - DB_USER=orgboss
       - DB_PASSWORD=orgboss
       - DB_NAME=orgboss
+      - SMTP_HOST=mailpit
+      - SMTP_PORT=1025
+      - SMTP_FROM=noreply@example.com
     depends_on:
       - orgboss-db
+      - mailpit
     networks:
       - orgboss-network
 
@@ -34,6 +38,19 @@ services:
       - postgres-data:/var/lib/postgresql/data
     networks:
       - orgboss-network
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"  # SMTP port
+      - "8025:8025"  # Web UI port
+    networks:
+      - orgboss-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8025"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   go-pkg:

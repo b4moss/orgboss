@@ -21,8 +21,10 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	data := &SeedData{}
 
 	// Organizationsを作成
+	// org1は日本の法人番号を模したもの（13桁の数字）
 	org1 := &types.Organization{
 		Name:      "テスト組織1",
+		Signature: "1234567890123",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -31,8 +33,10 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	}
 	data.Organizations = append(data.Organizations, org1)
 
+	// org2はランダム文字列（任意団体や海外組織を模したもの）
 	org2 := &types.Organization{
 		Name:      "テスト組織2",
+		Signature: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6",
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}

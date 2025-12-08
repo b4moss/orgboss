@@ -1,4 +1,4 @@
-.PHONY: help up down build logs clean db shell restart test test-integration test-integration-keep-data test-authboss-integration test-authboss-integration-keep-data fmt tidy migrate migrate-seed
+.PHONY: help up down build logs clean db shell restart test test-integration test-authboss-integration fmt tidy migrate migrate-seed
 
 # デフォルトターゲット
 help:
@@ -12,10 +12,8 @@ help:
 	@echo "  make shell       - アプリコンテナのシェルに入る"
 	@echo "  make restart     - 開発環境を再起動"
 	@echo "  make test        - テストを実行"
-	@echo "  make test-integration - 統合テストを実行（Dockerが必要）"
-	@echo "  make test-integration-keep-data - 統合テストを実行（テストデータを保持）"
-	@echo "  make test-authboss-integration - Authboss統合テストを実行（Dockerが必要）"
-	@echo "  make test-authboss-integration-keep-data - Authboss統合テストを実行（テストデータを保持）"
+	@echo "  make test-integration [KEEP=1] - 統合テストを実行（Dockerが必要、Authbossテスト含む）"
+	@echo "                                    KEEP=1を指定するとテストデータを保持"
 	@echo "  make fmt         - コードをフォーマット"
 	@echo "  make tidy        - 依存関係を整理"
 	@echo "  make migrate     - データベースマイグレーション実行"
@@ -57,21 +55,14 @@ restart: down up
 test:
 	cd src && docker compose exec orgboss-dev go test -short ./...
 
-# 統合テストを実行（Dockerが必要）
+# 統合テストを実行（Dockerが必要、Authbossテスト含む）
+# KEEP=1を指定するとテストデータを保持（例: make test-integration KEEP=1）
 test-integration:
-	cd src && docker compose exec orgboss-dev go test -v -run TestIntegration ./...
-
-# 統合テストを実行（テストデータを保持）
-test-integration-keep-data:
-	cd src && docker compose exec -e SKIP_CLEANUP=true orgboss-dev sh -c "go test -v -run TestIntegration ./..."
-
-# Authboss統合テストを実行（Dockerが必要）
-test-authboss-integration:
-	cd src && docker compose exec orgboss-dev go test -v -run TestAuthbossIntegration ./...
-
-# Authboss統合テストを実行（テストデータを保持）
-test-authboss-integration-keep-data:
-	cd src && docker compose exec -e SKIP_CLEANUP=true orgboss-dev sh -c "go test -v -run TestAuthbossIntegration ./..."
+	@if [ "$(KEEP)" = "1" ] || [ "$(keep)" = "1" ]; then \
+		cd src && docker compose exec -e SKIP_CLEANUP=true orgboss-dev sh -c "go test -v -run TestIntegration ./..."; \
+	else \
+		cd src && docker compose exec orgboss-dev go test -v -run TestIntegration ./...; \
+	fi
 
 # コードをフォーマット
 fmt:

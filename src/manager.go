@@ -559,8 +559,15 @@ func (m *Manager) executeHook(hook HookFunc, ctx context.Context, data interface
 
 // createOrganization はOrganizationを作成するヘルパーメソッド
 func (m *Manager) createOrganization(ctx context.Context, name string) (*Organization, error) {
+	// デフォルトではランダム文字列をSignatureとして使用
+	signature, err := generateRandomSignature()
+	if err != nil {
+		return nil, err
+	}
+	
 	org := &Organization{
 		Name:      name,
+		Signature: signature,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
@@ -568,6 +575,15 @@ func (m *Manager) createOrganization(ctx context.Context, name string) (*Organiz
 		return nil, err
 	}
 	return org, nil
+}
+
+// generateRandomSignature はランダムなSignatureを生成する（12バイト、24文字の16進数）
+func generateRandomSignature() (string, error) {
+	bytes := make([]byte, 12)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(bytes), nil
 }
 
 // createUser はUserを作成するヘルパーメソッド（パスワードなし）

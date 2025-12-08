@@ -7,6 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	
+	"orgboss/internal/storage"
 )
 
 // mockEmailSender はテスト用のEmailSenderモック
@@ -47,6 +49,9 @@ func TestCreateOrganizationWithUser_正常系(t *testing.T) {
 	assert.Equal(t, userEmail, user.Email, "ユーザーのメールアドレスが正しく設定される")
 	assert.Equal(t, RoleManager, user.Role, "最初のユーザーはmanagerロールになる")
 	assert.Equal(t, org.ID, user.OrganizationID, "UserのOrganizationIDが正しく設定される")
+	
+	// Signatureの検証
+	assert.NotEmpty(t, org.Signature, "Signatureが設定される")
 }
 
 func TestCreateOrganizationWithUser_異常系_Organization作成失敗(t *testing.T) {
@@ -681,4 +686,96 @@ func TestIsExpired_正常系_有効期限切れ(t *testing.T) {
 	result := m.IsExpired(expiresAt)
 
 	assert.True(t, result, "有効期限切れの場合、trueが返される")
+}
+
+// ============================================================================
+// GetOrganizationBySignature のテスト
+// ============================================================================
+
+func TestGetOrganizationBySignature_正常系(t *testing.T) {
+	ctx := context.Background()
+	storage := storage.NewInMemoryStorage()
+	config := DefaultConfig()
+	m := NewManagerWithStorage(config, storage)
+
+	// Organizationを作成
+	orgName := "テスト組織"
+	userEmail := "manager@example.com"
+	org, _, err := m.CreateOrganizationWithUser(ctx, orgName, userEmail)
+	require.NoError(t, err)
+	require.NotNil(t, org)
+	require.NotEmpty(t, org.Signature)
+
+	// SignatureでOrganizationを取得
+	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, org.Signature)
+
+	require.NoError(t, err, "SignatureでOrganizationが取得できる")
+	require.NotNil(t, retrievedOrg, "Organizationが取得される")
+	assert.Equal(t, org.ID, retrievedOrg.ID, "正しいOrganizationが取得される")
+	assert.Equal(t, org.Name, retrievedOrg.Name, "組織名が一致する")
+	assert.Equal(t, org.Signature, retrievedOrg.Signature, "Signatureが一致する")
+}
+
+func TestGetOrganizationBySignature_異常系_存在しないSignature(t *testing.T) {
+	ctx := context.Background()
+	storage := storage.NewInMemoryStorage()
+
+	// 存在しないSignatureで取得を試みる
+	nonExistentSignature := "non-existent-signature-1234567890"
+	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, nonExistentSignature)
+
+	assert.Error(t, err, "エラーが返される")
+	assert.Nil(t, retrievedOrg, "Organizationが取得されない")
+}
+
+func TestGetOrganizationBySignature_正常系_日本の法人番号(t *testing.T) {
+	ctx := context.Background()
+	storage := storage.NewInMemoryStorage()
+
+	// 日本の法人番号を模したOrganizationを直接作成
+	org := &Organization{
+		Name:      "日本の法人テスト",
+		Signature: "1234567890123",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := storage.CreateOrganization(ctx, org)
+	require.NoError(t, err)
+
+	// SignatureでOrganizationを取得
+	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "1234567890123")
+
+	require.NoError(t, err, "日本の法人番号でOrganizationが取得できる")
+	require.NotNil(t, retrievedOrg, "Organizationが取得される")
+	assert.Equal(t, org.ID, retrievedOrg.ID, "正しいOrganizationが取得される")
+}
+
+func TestGetOrganizationBySignature_正常系_ユニーク制約(t *testing.T) {
+	ctx := context.Background()
+	storage := storage.NewInMemoryStorage()
+
+	// 同じSignatureで2つのOrganizationを作成しようとする（ユニーク制約違反）
+	org1 := &Organization{
+		Name:      "組織1",
+		Signature: "duplicate-signature-12345",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err := storage.CreateOrganization(ctx, org1)
+	require.NoError(t, err)
+
+	// 同じSignatureで2つ目のOrganizationを作成（ユニーク制約違反）
+	org2 := &Organization{
+		Name:      "組織2",
+		Signature: "duplicate-signature-12345", // 同じSignature
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	err = storage.CreateOrganization(ctx, org2)
+	require.NoError(t, err) // インメモリストレージではユニーク制約がチェックされない
+	
+	// GetOrganizationBySignatureが最初のOrganizationを返すことを確認
+	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "duplicate-signature-12345")
+	require.NoError(t, err)
+	assert.Equal(t, org1.ID, retrievedOrg.ID, "最初に作成されたOrganizationが取得される")
 }

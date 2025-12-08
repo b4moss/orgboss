@@ -7,6 +7,7 @@ type Storage interface {
 	// Organization操作
 	CreateOrganization(ctx context.Context, org *Organization) error
 	GetOrganization(ctx context.Context, id uint) (*Organization, error)
+	GetOrganizationBySignature(ctx context.Context, signature string) (*Organization, error)
 	UpdateOrganization(ctx context.Context, org *Organization) error
 	DeleteOrganization(ctx context.Context, id uint) error
 	ListOrganizations(ctx context.Context) ([]*Organization, error)
@@ -24,6 +25,7 @@ type Storage interface {
 	GetInvitationByToken(ctx context.Context, token string) (*Invitation, error)
 	GetInvitationByID(ctx context.Context, id uint) (*Invitation, error)
 	GetInvitationsByOrganizationID(ctx context.Context, orgID uint) ([]*Invitation, error)
+	GetInvitationsByEmail(ctx context.Context, email string) ([]*Invitation, error)
 	UpdateInvitation(ctx context.Context, invitation *Invitation) error
 	DeleteInvitation(ctx context.Context, id uint) error
 }

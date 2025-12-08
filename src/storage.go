@@ -45,6 +45,16 @@ func (s *InMemoryStorage) GetOrganization(ctx context.Context, id uint) (*Organi
 	return org, nil
 }
 
+// GetOrganizationBySignature はSignatureでOrganizationを取得する
+func (s *InMemoryStorage) GetOrganizationBySignature(ctx context.Context, signature string) (*Organization, error) {
+	for _, org := range s.organizations {
+		if org.Signature == signature {
+			return org, nil
+		}
+	}
+	return nil, ErrOrganizationNotFound
+}
+
 // UpdateOrganization はOrganizationを更新する
 func (s *InMemoryStorage) UpdateOrganization(ctx context.Context, org *Organization) error {
 	if _, exists := s.organizations[org.ID]; !exists {
@@ -164,6 +174,17 @@ func (s *InMemoryStorage) GetInvitationsByOrganizationID(ctx context.Context, or
 	invitations := make([]*Invitation, 0)
 	for _, invitation := range s.invitations {
 		if invitation.OrganizationID == orgID {
+			invitations = append(invitations, invitation)
+		}
+	}
+	return invitations, nil
+}
+
+// GetInvitationsByEmail はメールアドレスでInvitationを取得する
+func (s *InMemoryStorage) GetInvitationsByEmail(ctx context.Context, email string) ([]*Invitation, error) {
+	invitations := make([]*Invitation, 0)
+	for _, invitation := range s.invitations {
+		if invitation.Email == email {
 			invitations = append(invitations, invitation)
 		}
 	}

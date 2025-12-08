@@ -37,6 +37,19 @@ func (s *PostgresStorage) GetOrganization(ctx context.Context, id uint) (*types.
 	return &org, nil
 }
 
+// GetOrganizationBySignature はSignatureでOrganizationを取得する
+func (s *PostgresStorage) GetOrganizationBySignature(ctx context.Context, signature string) (*types.Organization, error) {
+	var org types.Organization
+	err := s.db.WithContext(ctx).Where("signature = ?", signature).First(&org).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, types.ErrOrganizationNotFound
+		}
+		return nil, err
+	}
+	return &org, nil
+}
+
 // UpdateOrganization はOrganizationを更新する
 func (s *PostgresStorage) UpdateOrganization(ctx context.Context, org *types.Organization) error {
 	result := s.db.WithContext(ctx).Save(org)
@@ -171,6 +184,16 @@ func (s *PostgresStorage) GetInvitationByID(ctx context.Context, id uint) (*type
 func (s *PostgresStorage) GetInvitationsByOrganizationID(ctx context.Context, orgID uint) ([]*types.Invitation, error) {
 	var invitations []*types.Invitation
 	err := s.db.WithContext(ctx).Where("organization_id = ?", orgID).Find(&invitations).Error
+	if err != nil {
+		return nil, err
+	}
+	return invitations, nil
+}
+
+// GetInvitationsByEmail はメールアドレスでInvitationを取得する
+func (s *PostgresStorage) GetInvitationsByEmail(ctx context.Context, email string) ([]*types.Invitation, error) {
+	var invitations []*types.Invitation
+	err := s.db.WithContext(ctx).Where("email = ?", email).Find(&invitations).Error
 	if err != nil {
 		return nil, err
 	}

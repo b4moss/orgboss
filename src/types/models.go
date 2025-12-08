@@ -24,6 +24,7 @@ const (
 type Organization struct {
 	ID        uint      `gorm:"primaryKey"`
 	Name      string    `gorm:"not null"`
+	Signature string    `gorm:"uniqueIndex;not null"` // 組織の一意識別子（法人番号またはランダム文字列）。ユニーク制約あり。
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `gorm:"index"`
