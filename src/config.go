@@ -14,6 +14,9 @@ type Config struct {
 	InvitationBaseURL               string // 招待URLのベースURL（例: "http://localhost:8080"）
 	InvitationRedirectPath           string // リダイレクト先のパス（例: "/reset-password"）
 	EnableAutoLoginAfterPasswordReset bool // パスワードリセット後の自動ログインを有効にする（デフォルト: true）
+	InvitationEmailSubjectTemplatePath string // 件名テンプレートファイルのパス（オプション、空の場合はデフォルトテンプレートを使用）
+	InvitationEmailBodyTemplatePath   string // 本文テンプレートファイルのパス（オプション、空の場合はデフォルトテンプレートを使用）
+	InvitationEmailFrom              string // 差出人（オプション、既存のSMTP_FROMをオーバーライド）
 }
 
 // DefaultConfig はデフォルト設定を返す
