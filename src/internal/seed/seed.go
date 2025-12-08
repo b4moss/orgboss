@@ -6,22 +6,22 @@ import (
 
 	"gorm.io/gorm"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
-// SeedData はテスト用のシードデータを生成する
+// SeedData generates test seed data
 type SeedData struct {
 	Organizations []*types.Organization
 	Users         []*types.User
 	Invitations   []*types.Invitation
 }
 
-// Seed はデータベースにシードデータを投入する
+// Seed seeds the database with seed data
 func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	data := &SeedData{}
 
-	// Organizationsを作成
-	// org1は日本の法人番号を模したもの（13桁の数字）
+	// Create Organizations
+	// org1 simulates a Japanese corporate number (13-digit number)
 	org1 := &types.Organization{
 		Name:      "テスト組織1",
 		Signature: "1234567890123",
@@ -33,7 +33,7 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	}
 	data.Organizations = append(data.Organizations, org1)
 
-	// org2はランダム文字列（任意団体や海外組織を模したもの）
+	// org2 is a random string (simulating voluntary organizations or overseas organizations)
 	org2 := &types.Organization{
 		Name:      "テスト組織2",
 		Signature: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6",
@@ -45,7 +45,7 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	}
 	data.Organizations = append(data.Organizations, org2)
 
-	// Usersを作成
+	// Create Users
 	user1 := &types.User{
 		Email:          "manager1@example.com",
 		OrganizationID: org1.ID,
@@ -82,7 +82,7 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	}
 	data.Users = append(data.Users, user3)
 
-	// Invitationsを作成
+	// Create Invitations
 	invitation1 := &types.Invitation{
 		Email:          "invited1@example.com",
 		OrganizationID: org1.ID,
@@ -100,7 +100,7 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 		Email:          "invited2@example.com",
 		OrganizationID: org1.ID,
 		Token:          "test-token-2-expired",
-		ExpiresAt:      time.Now().Add(-1 * time.Hour), // 期限切れ
+		ExpiresAt:      time.Now().Add(-1 * time.Hour), // Expired
 		Status:         types.InvitationStatusPending,
 		CreatedAt:      time.Now(),
 	}
@@ -125,9 +125,9 @@ func Seed(ctx context.Context, db *gorm.DB) (*SeedData, error) {
 	return data, nil
 }
 
-// Cleanup はシードデータを削除する
+// Cleanup deletes seed data
 func Cleanup(ctx context.Context, db *gorm.DB) error {
-	// 外部キー制約の順序で削除
+	// Delete in order of foreign key constraints
 	if err := db.WithContext(ctx).Exec("DELETE FROM invitations").Error; err != nil {
 		return err
 	}

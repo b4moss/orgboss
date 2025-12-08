@@ -1,9 +1,9 @@
 package orgboss
 
-// Version はorgbossのバージョン番号です
-const Version = "0.2.0"
+// Version is the version number of orgboss
+const Version = "0.2.0-rev.1"
 
-// VersionInfo はバージョン情報を返します
+// VersionInfo returns the version information
 func VersionInfo() string {
 	return Version
 }

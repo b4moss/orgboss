@@ -1,4 +1,4 @@
-module orgboss
+module github.com/b4m-oss/orgboss
 
 go 1.24.10
 

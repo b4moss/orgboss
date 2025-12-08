@@ -3,10 +3,10 @@ package orgboss
 import (
 	"errors"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
-// エラーも types パッケージのものを再エクスポート
+// Re-export errors from the types package
 var (
 	ErrOrganizationNotFound     = types.ErrOrganizationNotFound
 	ErrUserNotFound             = types.ErrUserNotFound
@@ -15,7 +15,7 @@ var (
 	ErrEmailAlreadyExists       = types.ErrEmailAlreadyExists
 )
 
-// 追加のエラー定義（types パッケージにはないもの）
+// Additional error definitions (not in the types package)
 var (
 	ErrInvalidToken              = errors.New("invalid token")
 	ErrInvitationExpired         = errors.New("invitation expired")

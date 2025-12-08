@@ -8,18 +8,18 @@ import (
 	"github.com/aarondl/authboss/v3"
 	"gorm.io/gorm"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
-// User はAuthbossのUserモデルを拡張した構造体
-// Authbossの標準Userインターフェースを実装し、organization_idとroleを追加
+// User is a struct that extends Authboss's User model
+// Implements Authboss's standard User interface and adds organization_id and role
 type User struct {
-	// Authbossの標準フィールド
+	// Standard Authboss fields
 	ID       int64  `db:"id"`
 	Email    string `db:"email"`
 	Password string `db:"password"`
 
-	// orgbossの拡張フィールド
+	// orgboss extension fields
 	OrganizationID uint        `gorm:"not null;index" db:"organization_id"`
 	Role           types.Role   `gorm:"not null;default:'user'" db:"role"`
 	CreatedAt      sql.NullTime `db:"created_at"`
@@ -27,182 +27,181 @@ type User struct {
 	DeletedAt      sql.NullTime `gorm:"index" db:"deleted_at"`
 }
 
-// PutPID はAuthbossのUserインターフェース実装
+// PutPID implements Authboss's User interface
 func (u *User) PutPID(pid string) {
 	u.Email = pid
 }
 
-// PutPassword はAuthbossのUserインターフェース実装
+// PutPassword implements Authboss's User interface
 func (u *User) PutPassword(password string) {
 	u.Password = password
 }
 
-// PutEmail はAuthbossのUserインターフェース実装
+// PutEmail implements Authboss's User interface
 func (u *User) PutEmail(email string) {
 	u.Email = email
 }
 
-// PutConfirmed はAuthbossのUserインターフェース実装（未使用）
+// PutConfirmed implements Authboss's User interface (unused)
 func (u *User) PutConfirmed(confirmed bool) {
-	// orgbossでは未使用
+	// Unused in orgboss
 }
 
-// PutLocked はAuthbossのUserインターフェース実装（未使用）
+// PutLocked implements Authboss's User interface (unused)
 func (u *User) PutLocked(locked bool) {
-	// orgbossでは未使用
+	// Unused in orgboss
 }
 
-// PutAttemptCount はAuthbossのUserインターフェース実装（未使用）
+// PutAttemptCount implements Authboss's User interface (unused)
 func (u *User) PutAttemptCount(attempts int) {
-	// orgbossでは未使用
+	// Unused in orgboss
 }
 
-// PutLastAttempt はAuthbossのUserインターフェース実装（未使用）
+// PutLastAttempt implements Authboss's User interface (unused)
 func (u *User) PutLastAttempt(lastAttempt *sql.NullTime) {
-	// orgbossでは未使用
+	// Unused in orgboss
 }
 
-// PutExpired はAuthbossのUserインターフェース実装（未使用）
+// PutExpired implements Authboss's User interface (unused)
 func (u *User) PutExpired(expired *sql.NullTime) {
-	// orgbossでは未使用
+	// Unused in orgboss
 }
 
-// GetPID はAuthbossのUserインターフェース実装
+// GetPID implements Authboss's User interface
 func (u *User) GetPID() string {
 	return u.Email
 }
 
-// GetPassword はAuthbossのUserインターフェース実装
+// GetPassword implements Authboss's User interface
 func (u *User) GetPassword() string {
 	return u.Password
 }
 
-// GetEmail はAuthbossのUserインターフェース実装
-// 注意: 公式のAuthboss v3のUserインターフェースにはGetEmail()メソッドがない可能性があります
-// EmailはPID（Principal ID）として扱われ、GetPID()で取得します
-// このメソッドはorgbossの内部実装用に保持しています
+// GetEmail implements Authboss's User interface
+// Note: The official Authboss v3 User interface may not have a GetEmail() method
+// Email is treated as PID (Principal ID) and retrieved via GetPID()
+// This method is kept for orgboss's internal implementation
 func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetConfirmed はAuthbossのUserインターフェース実装
+// GetConfirmed implements Authboss's User interface
 func (u *User) GetConfirmed() bool {
-	return true // orgbossでは常にtrue
+	return true // Always true in orgboss
 }
 
-// GetLocked はAuthbossのUserインターフェース実装
+// GetLocked implements Authboss's User interface
 func (u *User) GetLocked() bool {
-	return false // orgbossでは常にfalse
+	return false // Always false in orgboss
 }
 
-// GetAttemptCount はAuthbossのUserインターフェース実装
+// GetAttemptCount implements Authboss's User interface
 func (u *User) GetAttemptCount() int {
-	return 0 // orgbossでは未使用
+	return 0 // Unused in orgboss
 }
 
-// GetLastAttempt はAuthbossのUserインターフェース実装
+// GetLastAttempt implements Authboss's User interface
 func (u *User) GetLastAttempt() *sql.NullTime {
-	return nil // orgbossでは未使用
+	return nil // Unused in orgboss
 }
 
-// GetExpired はAuthbossのUserインターフェース実装
+// GetExpired implements Authboss's User interface
 func (u *User) GetExpired() *sql.NullTime {
-	return nil // orgbossでは未使用
+	return nil // Unused in orgboss
 }
 
-// SetupAuthboss はAuthbossを設定し、orgbossとの統合を行う
-// 注意: Authbossの実際のAPIに合わせて実装する必要があります
-// 現在はプレースホルダーとして実装されています
-// 公式リポジトリ: https://github.com/aarondl/authboss
+// SetupAuthboss configures Authboss and integrates it with orgboss
+// Note: Implementation must match Authboss's actual API
+// Currently implemented as a placeholder
+// Official repository: https://github.com/aarondl/authboss
 func SetupAuthboss(db *gorm.DB, ab *authboss.Authboss) error {
-	// Authbossのストレージを設定
-	// ここでは簡易実装として、GORMを使ったストレージを設定
-	// 実際の実装では、Authbossのストレージインターフェースを実装する必要がある
+	// Configure Authboss storage
+	// Here, a simple implementation using GORM is set up
+	// In actual implementation, Authboss's storage interface must be implemented
 
-	// BeforeRegisterフックを設定して、組織作成を連動
-	// 注意: Authboss v3の実際のAPIに合わせて実装する必要があります
-	// 公式ドキュメントを参照して、正しいフック設定方法を確認してください
-	// 現在はコメントアウトしています
+	// Set up BeforeRegister hook to link organization creation
+	// Note: Implementation must match Authboss v3's actual API
+	// Refer to official documentation to confirm the correct hook setup method
+	// Currently commented out
 	// ab.Config.Core.BeforeRegister = func(ctx context.Context, r *authboss.RegisterValues) error {
-	// 	// ここでorgbossのCreateOrganizationWithUserを呼び出す
-	// 	// 実際の実装では、orgboss.Managerを取得して呼び出す必要がある
+	// 	// Call orgboss's CreateOrganizationWithUser here
+	// 	// In actual implementation, need to get orgboss.Manager and call it
 	// 	return nil
 	// }
 
 	return nil
 }
 
-// SetupAuthbossWithAutoLogin はAuthbossを設定し、パスワードリセット後のリダイレクト機能を有効にする
-// enableAutoLoginがtrueの場合、パスワードリセット完了後にログインページにリダイレクトする設定を有効にします
-// 公式リポジトリ: https://github.com/aarondl/authboss
+// SetupAuthbossWithAutoLogin configures Authboss and enables redirect functionality after password reset
+// If enableAutoLogin is true, enables settings to redirect to login page after password reset completion
+// Official repository: https://github.com/aarondl/authboss
 //
-// 注意: 実際のリダイレクト処理は、パスワードリセットのHTTPハンドラー側で実装する必要があります。
-// RedirectToLoginAfterPasswordReset ヘルパー関数を使用して、リダイレクト処理を実装してください。
-// 参考: https://github.com/aarondl/authboss/blob/v3.5.3/authboss.go#L76
+// Note: Actual redirect processing must be implemented on the password reset HTTP handler side.
+// Use the RedirectToLoginAfterPasswordReset helper function to implement redirect processing.
+// Reference: https://github.com/aarondl/authboss/blob/v3.5.3/authboss.go#L76
 func SetupAuthbossWithAutoLogin(db *gorm.DB, ab *authboss.Authboss, enableAutoLogin bool) error {
-	// 基本的な設定を実行
+	// Execute basic setup
 	if err := SetupAuthboss(db, ab); err != nil {
 		return err
 	}
 
-	// 自動ログイン（リダイレクト）が有効な場合の設定
-	// 注意: Authboss v3では、パスワードリセット後のリダイレクト処理は、
-	// HTTPハンドラーレベルで実装する必要があります。
-	// RedirectToLoginAfterPasswordReset ヘルパー関数を使用して実装してください。
+	// Settings for when auto-login (redirect) is enabled
+	// Note: In Authboss v3, redirect processing after password reset must be implemented at the HTTP handler level.
+	// Use the RedirectToLoginAfterPasswordReset helper function to implement it.
 	if enableAutoLogin {
-		// 設定は完了しました。実際のリダイレクト処理は、
-		// パスワードリセットのHTTPハンドラー側で RedirectToLoginAfterPasswordReset を呼び出してください。
+		// Setup is complete. Actual redirect processing should call RedirectToLoginAfterPasswordReset
+		// on the password reset HTTP handler side.
 	}
 
 	return nil
 }
 
-// RedirectToLoginAfterPasswordReset はパスワードリセット完了後にログインページにリダイレクトする
-// この関数は、パスワードリセットのHTTPハンドラーから呼び出されます
+// RedirectToLoginAfterPasswordReset redirects to the login page after password reset completion
+// This function is called from the password reset HTTP handler
 //
-// 使用例:
+// Usage example:
 //   func passwordResetHandler(w http.ResponseWriter, r *http.Request) {
-//       // パスワードリセット処理...
+//       // Password reset processing...
 //       if err := authbossuser.RedirectToLoginAfterPasswordReset(r.Context(), w, r, ab); err != nil {
-//           // エラーハンドリング
+//           // Error handling
 //       }
 //   }
 func RedirectToLoginAfterPasswordReset(ctx context.Context, w http.ResponseWriter, r *http.Request, ab *authboss.Authboss) error {
-	// ログインページへのリダイレクトパスを取得
+	// Get redirect path to login page
 	loginPath := "/login"
 	if ab.Config.Paths.Mount != "" {
 		loginPath = ab.Config.Paths.Mount + loginPath
 	}
 
-	// リダイレクトオプションを設定
+	// Set redirect options
 	ro := authboss.RedirectOptions{
 		Code:         http.StatusSeeOther,
 		RedirectPath: loginPath,
 		Success:      "パスワードリセットが完了しました。ログインしてください。",
 	}
 
-	// リダイレクトを実行
+	// Execute redirect
 	if ab.Config.Core.Redirector != nil {
 		if err := ab.Config.Core.Redirector.Redirect(w, r, ro); err != nil {
 			return err
 		}
 	} else {
-		// Redirectorが設定されていない場合、標準的なHTTPリダイレクトを使用
+		// Use standard HTTP redirect if Redirector is not configured
 		http.Redirect(w, r, loginPath, http.StatusSeeOther)
 	}
 
 	return nil
 }
 
-// ValidateOrganizationAccess は認証後のミドルウェアでorganization_idを検証する
+// ValidateOrganizationAccess validates organization_id in post-authentication middleware
 func ValidateOrganizationAccess(ctx context.Context, user authboss.User, orgID uint, db *gorm.DB) error {
-	// AuthbossのUserからEmailを取得（GetPID()を使用、EmailはPIDとして使用される）
+	// Get Email from Authboss's User (using GetPID(), Email is used as PID)
 	email := user.GetPID()
 	if email == "" {
 		return types.ErrUserNotFound
 	}
 
-	// データベースからUserを取得
+	// Get User from database
 	var orgUser types.User
 	if err := db.WithContext(ctx).Where("email = ?", email).First(&orgUser).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -211,7 +210,7 @@ func ValidateOrganizationAccess(ctx context.Context, user authboss.User, orgID u
 		return err
 	}
 
-	// organization_idを検証
+	// Verify organization_id
 	if orgUser.OrganizationID != orgID {
 		return types.ErrOrganizationAccessDenied
 	}

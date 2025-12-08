@@ -4,34 +4,34 @@ import (
 	"context"
 	"time"
 
-	"orgboss"
+	"github.com/b4m-oss/orgboss"
 )
 
-// DefaultDeletionHandler はデフォルトのDeletionHandler実装（論理削除）
+// DefaultDeletionHandler is the default DeletionHandler implementation (logical deletion)
 type DefaultDeletionHandler struct {
 	storage orgboss.Storage
 }
 
-// NewDefaultDeletionHandler は新しいDefaultDeletionHandlerを作成する
+// NewDefaultDeletionHandler creates a new DefaultDeletionHandler
 func NewDefaultDeletionHandler(storage orgboss.Storage) *DefaultDeletionHandler {
 	return &DefaultDeletionHandler{
 		storage: storage,
 	}
 }
 
-// SetStorage はストレージを設定する（テスト用など）
+// SetStorage sets the storage (for testing, etc.)
 func (h *DefaultDeletionHandler) SetStorage(storage orgboss.Storage) {
 	h.storage = storage
 }
 
-// DeleteUser はUserを論理削除する
+// DeleteUser logically deletes a User
 func (h *DefaultDeletionHandler) DeleteUser(ctx context.Context, user *orgboss.User) error {
 	now := time.Now()
 	user.DeletedAt = &now
 	return h.storage.UpdateUser(ctx, user)
 }
 
-// DeleteOrganization はOrganizationを論理削除する
+// DeleteOrganization logically deletes an Organization
 func (h *DefaultDeletionHandler) DeleteOrganization(ctx context.Context, org *orgboss.Organization) error {
 	now := time.Now()
 	org.DeletedAt = &now

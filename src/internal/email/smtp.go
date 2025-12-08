@@ -11,7 +11,7 @@ import (
 	"strings"
 	"text/template"
 
-	"orgboss/types"
+	"github.com/b4m-oss/orgboss/types"
 )
 
 //go:embed templates/invitation_subject.txt
@@ -20,16 +20,16 @@ var defaultSubjectTemplate string
 //go:embed templates/invitation_body.txt
 var defaultBodyTemplate string
 
-// InvitationTemplateData は招待メールテンプレートのデータ構造体
+// InvitationTemplateData is the data structure for invitation email templates
 type InvitationTemplateData struct {
 	Email          string
 	InvitationURL  string
 	Token          string
-	ExpiresAt      string // フォーマット済み
+	ExpiresAt      string // Formatted
 	OrganizationID uint
 }
 
-// SMTPEmailSender はSMTPを使用してメールを送信する実装
+// SMTPEmailSender is an implementation that sends emails using SMTP
 type SMTPEmailSender struct {
 	host                    string
 	port                    int
@@ -40,7 +40,7 @@ type SMTPEmailSender struct {
 	bodyTemplate            *template.Template
 }
 
-// NewSMTPEmailSender は環境変数から設定を読み込んでSMTPEmailSenderを作成する
+// NewSMTPEmailSender creates an SMTPEmailSender by loading settings from environment variables
 func NewSMTPEmailSender() *SMTPEmailSender {
 	host := getEnv("SMTP_HOST", "localhost")
 	portStr := getEnv("SMTP_PORT", "1025")
@@ -53,13 +53,13 @@ func NewSMTPEmailSender() *SMTPEmailSender {
 		from: from,
 	}
 
-	// デフォルトテンプレートを読み込む
+	// Load default templates
 	sender.loadDefaultTemplates()
 
 	return sender
 }
 
-// NewSMTPEmailSenderWithTemplates はテンプレートパスを指定してSMTPEmailSenderを作成する
+// NewSMTPEmailSenderWithTemplates creates an SMTPEmailSender with specified template paths
 func NewSMTPEmailSenderWithTemplates(subjectTemplatePath, bodyTemplatePath, fromOverride string) *SMTPEmailSender {
 	host := getEnv("SMTP_HOST", "localhost")
 	portStr := getEnv("SMTP_PORT", "1025")
@@ -77,27 +77,27 @@ func NewSMTPEmailSenderWithTemplates(subjectTemplatePath, bodyTemplatePath, from
 		bodyTemplatePath:    bodyTemplatePath,
 	}
 
-	// テンプレートを読み込む
+	// Load templates
 	sender.loadTemplates()
 
 	return sender
 }
 
-// SetTemplatePaths はテンプレートパスを設定する
+// SetTemplatePaths sets the template paths
 func (s *SMTPEmailSender) SetTemplatePaths(subjectTemplatePath, bodyTemplatePath string) {
 	s.subjectTemplatePath = subjectTemplatePath
 	s.bodyTemplatePath = bodyTemplatePath
 	s.loadTemplates()
 }
 
-// SetFrom は差出人を設定する
+// SetFrom sets the From address
 func (s *SMTPEmailSender) SetFrom(from string) {
 	s.from = from
 }
 
-// SendInvitation は招待メールを送信する
+// SendInvitation sends an invitation email
 func (s *SMTPEmailSender) SendInvitation(ctx context.Context, invitation *types.Invitation, invitationURL string) error {
-	// テンプレートデータを準備
+	// Prepare template data
 	data := InvitationTemplateData{
 		Email:          invitation.Email,
 		InvitationURL:  invitationURL,
@@ -130,7 +130,7 @@ func (s *SMTPEmailSender) SendInvitation(ctx context.Context, invitation *types.
 	return nil
 }
 
-// loadTemplates はテンプレートを読み込む
+// loadTemplates loads templates
 func (s *SMTPEmailSender) loadTemplates() {
 	// 件名テンプレートの読み込み
 	if s.subjectTemplatePath != "" {
@@ -157,13 +157,13 @@ func (s *SMTPEmailSender) loadTemplates() {
 	}
 }
 
-// loadDefaultTemplates はデフォルトテンプレートを読み込む（後方互換性のため保持）
+// loadDefaultTemplates loads default templates (kept for backward compatibility)
 func (s *SMTPEmailSender) loadDefaultTemplates() {
 	s.loadDefaultSubjectTemplate()
 	s.loadDefaultBodyTemplate()
 }
 
-// loadDefaultSubjectTemplate はデフォルト件名テンプレートを読み込む
+// loadDefaultSubjectTemplate loads the default subject template
 func (s *SMTPEmailSender) loadDefaultSubjectTemplate() {
 	var err error
 	s.subjectTemplate, err = template.New("subject").Parse(defaultSubjectTemplate)
@@ -173,13 +173,13 @@ func (s *SMTPEmailSender) loadDefaultSubjectTemplate() {
 	}
 }
 
-// loadDefaultBodyTemplate はデフォルト本文テンプレートを読み込む
+// loadDefaultBodyTemplate loads the default body template
 func (s *SMTPEmailSender) loadDefaultBodyTemplate() {
 	var err error
 	s.bodyTemplate, err = template.New("body").Parse(defaultBodyTemplate)
 	if err != nil {
 		// パースエラーの場合はフォールバック
-		s.bodyTemplate, _ = template.New("body").Parse(`こんにちは、
+		s.bodyTemplate, _ = template.New("body").Parse(`こんにちは、{{.Email}}
 
 あなたは組織への招待を受けました。
 
@@ -197,7 +197,7 @@ func (s *SMTPEmailSender) loadDefaultBodyTemplate() {
 	}
 }
 
-// loadTemplateFromFile はファイルからテンプレートを読み込む
+// loadTemplateFromFile loads a template from a file
 func (s *SMTPEmailSender) loadTemplateFromFile(path string) (*template.Template, error) {
 	content, err := os.ReadFile(path)
 	if err != nil {
@@ -213,7 +213,7 @@ func (s *SMTPEmailSender) loadTemplateFromFile(path string) (*template.Template,
 	return tmpl, nil
 }
 
-// executeSubjectTemplate は件名テンプレートを実行する
+// executeSubjectTemplate executes the subject template
 func (s *SMTPEmailSender) executeSubjectTemplate(data InvitationTemplateData) (string, error) {
 	if s.subjectTemplate == nil {
 		s.loadDefaultTemplates()
@@ -226,7 +226,7 @@ func (s *SMTPEmailSender) executeSubjectTemplate(data InvitationTemplateData) (s
 	return strings.TrimSpace(buf.String()), nil
 }
 
-// executeBodyTemplate は本文テンプレートを実行する
+// executeBodyTemplate executes the body template
 func (s *SMTPEmailSender) executeBodyTemplate(data InvitationTemplateData) (string, error) {
 	if s.bodyTemplate == nil {
 		s.loadDefaultTemplates()
@@ -239,8 +239,8 @@ func (s *SMTPEmailSender) executeBodyTemplate(data InvitationTemplateData) (stri
 	return buf.String(), nil
 }
 
-// buildInvitationEmailBody は招待メールの本文を構築する（後方互換性のため保持）
-// このメソッドは非推奨です。テンプレート機能を使用してください。
+// buildInvitationEmailBody builds the body of an invitation email (kept for backward compatibility)
+// This method is deprecated. Please use the template functionality instead.
 func (s *SMTPEmailSender) buildInvitationEmailBody(invitation *types.Invitation, invitationURL string) string {
 	if invitationURL != "" {
 		// URLが提供されている場合、クリック可能なリンクを含める
@@ -274,12 +274,12 @@ func (s *SMTPEmailSender) buildInvitationEmailBody(invitation *types.Invitation,
 	)
 }
 
-// BuildEmailMessage はメールメッセージを構築する（テスト用に公開）
+// BuildEmailMessage builds an email message (exposed for testing)
 func (s *SMTPEmailSender) BuildEmailMessage(to, subject, body string) string {
 	return s.buildEmailMessage(to, subject, body)
 }
 
-// buildEmailMessage はメールメッセージを構築する
+// buildEmailMessage builds an email message
 func (s *SMTPEmailSender) buildEmailMessage(to, subject, body string) string {
 	message := fmt.Sprintf("From: %s\r\n", s.from)
 	message += fmt.Sprintf("To: %s\r\n", to)
@@ -290,7 +290,7 @@ func (s *SMTPEmailSender) buildEmailMessage(to, subject, body string) string {
 	return message
 }
 
-// getEnv は環境変数を取得し、デフォルト値を返す
+// getEnv gets an environment variable and returns a default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value

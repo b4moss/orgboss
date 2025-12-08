@@ -2,10 +2,10 @@ package orgboss
 
 import "context"
 
-// HookFunc はフック関数の型
+// HookFunc is the type for hook functions
 type HookFunc func(ctx context.Context, data interface{}) error
 
-// Hooks はフックポイントを管理する
+// Hooks manages hook points
 type Hooks struct {
 	BeforeOrganizationCreate HookFunc
 	AfterOrganizationCreate  HookFunc
@@ -17,7 +17,7 @@ type Hooks struct {
 	AfterUserDelete          HookFunc
 }
 
-// NewHooks は新しいHooksを作成する
+// NewHooks creates a new Hooks instance
 func NewHooks() *Hooks {
 	return &Hooks{}
 }

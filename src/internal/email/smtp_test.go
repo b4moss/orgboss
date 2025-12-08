@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewSMTPEmailSender_デフォルトテンプレート読み込み(t *testing.T) {
+func TestNewSMTPEmailSender_LoadDefaultTemplates(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	
 	assert.NotNil(t, sender, "SMTPEmailSenderが作成される")
@@ -17,7 +17,7 @@ func TestNewSMTPEmailSender_デフォルトテンプレート読み込み(t *tes
 	assert.NotNil(t, sender.bodyTemplate, "本文テンプレートが読み込まれる")
 }
 
-func TestSMTPEmailSender_デフォルトテンプレート実行(t *testing.T) {
+func TestSMTPEmailSender_ExecuteDefaultTemplates(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	
 	data := InvitationTemplateData{
@@ -39,7 +39,7 @@ func TestSMTPEmailSender_デフォルトテンプレート実行(t *testing.T) {
 	assert.Contains(t, body, "2024-01-01 12:00:00", "本文に有効期限が含まれる")
 }
 
-func TestSMTPEmailSender_デフォルトテンプレート実行_URLなし(t *testing.T) {
+func TestSMTPEmailSender_ExecuteDefaultTemplates_WithoutURL(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	
 	data := InvitationTemplateData{
@@ -56,7 +56,7 @@ func TestSMTPEmailSender_デフォルトテンプレート実行_URLなし(t *te
 	assert.NotContains(t, body, "http://example.com/invite/token123", "URLがない場合はURLが含まれない")
 }
 
-func TestSMTPEmailSender_SetTemplatePaths_カスタムテンプレート(t *testing.T) {
+func TestSMTPEmailSender_SetTemplatePaths_CustomTemplates(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
 	
@@ -91,7 +91,7 @@ func TestSMTPEmailSender_SetTemplatePaths_カスタムテンプレート(t *test
 	assert.Contains(t, body, "組織ID: 42への招待です。", "カスタム本文に組織IDが含まれる")
 }
 
-func TestSMTPEmailSender_SetTemplatePaths_存在しないファイル(t *testing.T) {
+func TestSMTPEmailSender_SetTemplatePaths_NonExistentFile(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	
 	// 存在しないファイルパスを設定
@@ -174,8 +174,8 @@ func TestSMTPEmailSender_buildEmailMessage(t *testing.T) {
 	assert.Contains(t, message, "Content-Type: text/plain; charset=UTF-8", "Content-Typeが含まれる")
 }
 
-// テンプレート実行のエッジケースをテスト
-func TestSMTPEmailSender_テンプレート変数(t *testing.T) {
+// Test edge cases for template execution
+func TestSMTPEmailSender_TemplateVariables(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	
 	data := InvitationTemplateData{

@@ -10,18 +10,18 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	
-	"orgboss/internal/email"
-	"orgboss/internal/storage"
+	"github.com/b4m-oss/orgboss/internal/email"
+	"github.com/b4m-oss/orgboss/internal/storage"
 )
 
-// mockEmailSender はテスト用のEmailSenderモック
+// mockEmailSender is a mock EmailSender for testing
 type mockEmailSender struct{}
 
 func (m *mockEmailSender) SendInvitation(ctx context.Context, invitation *Invitation, invitationURL string) error {
 	return nil
 }
 
-// ダミーテスト: testifyが正しく動作することを確認
+// Dummy test: verify that testify works correctly
 func TestTestifyAssert(t *testing.T) {
 	assert.Equal(t, 1, 1, "基本的なアサーションが動作することを確認")
 	assert.NotNil(t, "test", "NotNilアサーションが動作することを確認")
@@ -33,10 +33,10 @@ func TestTestifyRequire(t *testing.T) {
 }
 
 // ============================================================================
-// NewManager のテスト
+// Tests for NewManager
 // ============================================================================
 
-func TestNewManager_正常系(t *testing.T) {
+func TestNewManager_Success(t *testing.T) {
 	config := DefaultConfig()
 	m := NewManager(config)
 	assert.NotNil(t, m, "Managerが作成される")
@@ -44,13 +44,13 @@ func TestNewManager_正常系(t *testing.T) {
 	assert.NotNil(t, m.storage, "Storageが設定される")
 }
 
-func TestNewManager_Configがnilの場合(t *testing.T) {
+func TestNewManager_WithNilConfig(t *testing.T) {
 	m := NewManager(nil)
 	assert.NotNil(t, m, "Managerが作成される")
 	assert.NotNil(t, m.config, "デフォルトConfigが設定される")
 }
 
-func TestNewManager_DeletionHandlerが既に設定されている場合(t *testing.T) {
+func TestNewManager_WithDeletionHandler(t *testing.T) {
 	config := DefaultConfig()
 	storage := storage.NewInMemoryStorage()
 	config.DeletionHandler = NewDefaultDeletionHandler(storage)
@@ -60,10 +60,10 @@ func TestNewManager_DeletionHandlerが既に設定されている場合(t *testi
 }
 
 // ============================================================================
-// NewManagerWithStorage のテスト
+// Tests for NewManagerWithStorage
 // ============================================================================
 
-func TestNewManagerWithStorage_正常系(t *testing.T) {
+func TestNewManagerWithStorage_Success(t *testing.T) {
 	config := DefaultConfig()
 	storage := storage.NewInMemoryStorage()
 	m := NewManagerWithStorage(config, storage)
@@ -71,14 +71,14 @@ func TestNewManagerWithStorage_正常系(t *testing.T) {
 	assert.Equal(t, storage, m.storage, "指定されたStorageが設定される")
 }
 
-func TestNewManagerWithStorage_Configがnilの場合(t *testing.T) {
+func TestNewManagerWithStorage_WithNilConfig(t *testing.T) {
 	storage := storage.NewInMemoryStorage()
 	m := NewManagerWithStorage(nil, storage)
 	assert.NotNil(t, m, "Managerが作成される")
 	assert.NotNil(t, m.config, "デフォルトConfigが設定される")
 }
 
-func TestNewManagerWithStorage_DeletionHandlerが既に設定されている場合(t *testing.T) {
+func TestNewManagerWithStorage_WithDeletionHandler(t *testing.T) {
 	config := DefaultConfig()
 	storage := storage.NewInMemoryStorage()
 	config.DeletionHandler = NewDefaultDeletionHandler(storage)
@@ -88,10 +88,10 @@ func TestNewManagerWithStorage_DeletionHandlerが既に設定されている場�
 }
 
 // ============================================================================
-// CreateOrganizationWithUser のテスト
+// Tests for CreateOrganizationWithUser
 // ============================================================================
 
-func TestCreateOrganizationWithUser_正常系(t *testing.T) {
+func TestCreateOrganizationWithUser_Success(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -112,7 +112,7 @@ func TestCreateOrganizationWithUser_正常系(t *testing.T) {
 	assert.NotEmpty(t, org.Signature, "Signatureが設定される")
 }
 
-func TestCreateOrganizationWithUser_異常系_空の組織名(t *testing.T) {
+func TestCreateOrganizationWithUser_InvalidEmptyOrgName(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -123,7 +123,7 @@ func TestCreateOrganizationWithUser_異常系_空の組織名(t *testing.T) {
 	assert.Nil(t, user, "Userも作成されない")
 }
 
-func TestCreateOrganizationWithUser_異常系_無効なメールアドレス(t *testing.T) {
+func TestCreateOrganizationWithUser_InvalidEmail(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -134,7 +134,7 @@ func TestCreateOrganizationWithUser_異常系_無効なメールアドレス(t *
 	assert.Nil(t, user, "Userも作成されない")
 }
 
-func TestCreateOrganizationWithUser_異常系_フックエラー(t *testing.T) {
+func TestCreateOrganizationWithUser_HookError(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -154,10 +154,10 @@ func TestCreateOrganizationWithUser_異常系_フックエラー(t *testing.T) {
 }
 
 // ============================================================================
-// InviteUser のテスト
+// Tests for InviteUser
 // ============================================================================
 
-func TestInviteUser_正常系(t *testing.T) {
+func TestInviteUser_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -177,7 +177,7 @@ func TestInviteUser_正常系(t *testing.T) {
 	assert.False(t, invitation.ExpiresAt.IsZero(), "有効期限が設定される")
 }
 
-func TestInviteUser_異常系_メール送信失敗(t *testing.T) {
+func TestInviteUser_EmailSendFailure(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	// EmailSenderがnilの場合、エラーが返されることを想定
@@ -197,10 +197,10 @@ func TestInviteUser_異常系_メール送信失敗(t *testing.T) {
 }
 
 // ============================================================================
-// InviteUsers（バルク招待）のテスト
+// Tests for InviteUsers (bulk invitation)
 // ============================================================================
 
-func TestInviteUsers_正常系(t *testing.T) {
+func TestInviteUsers_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -219,7 +219,7 @@ func TestInviteUsers_正常系(t *testing.T) {
 	}
 }
 
-func TestInviteUsers_異常系_上限超過(t *testing.T) {
+func TestInviteUsers_LimitExceeded(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.MaxBulkInviteCount = 2
@@ -240,10 +240,10 @@ func TestInviteUsers_異常系_上限超過(t *testing.T) {
 }
 
 // ============================================================================
-// AcceptInvitation のテスト
+// Tests for AcceptInvitation
 // ============================================================================
 
-func TestAcceptInvitation_正常系(t *testing.T) {
+func TestAcceptInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -262,7 +262,7 @@ func TestAcceptInvitation_正常系(t *testing.T) {
 	assert.Equal(t, RoleUser, user.Role, "Userのロールがuserになる")
 }
 
-func TestAcceptInvitation_異常系_無効なトークン(t *testing.T) {
+func TestAcceptInvitation_InvalidToken(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -279,7 +279,7 @@ func TestAcceptInvitation_異常系_無効なトークン(t *testing.T) {
 	}
 }
 
-func TestAcceptInvitation_異常系_有効期限切れ(t *testing.T) {
+func TestAcceptInvitation_Expired(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -305,10 +305,10 @@ func TestAcceptInvitation_異常系_有効期限切れ(t *testing.T) {
 }
 
 // ============================================================================
-// RejectInvitation のテスト
+// Tests for RejectInvitation
 // ============================================================================
 
-func TestRejectInvitation_正常系(t *testing.T) {
+func TestRejectInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -326,7 +326,7 @@ func TestRejectInvitation_正常系(t *testing.T) {
 	require.NoError(t, err, "招待が正常に拒否される")
 }
 
-func TestRejectInvitation_異常系_無効なトークン(t *testing.T) {
+func TestRejectInvitation_InvalidToken(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -341,10 +341,10 @@ func TestRejectInvitation_異常系_無効なトークン(t *testing.T) {
 }
 
 // ============================================================================
-// DeleteUser のテスト
+// Tests for DeleteUser
 // ============================================================================
 
-func TestDeleteUser_正常系_Userが自ら退会(t *testing.T) {
+func TestDeleteUser_Success_UserSelfDeletion(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -365,7 +365,7 @@ func TestDeleteUser_正常系_Userが自ら退会(t *testing.T) {
 	require.NoError(t, err, "Userが正常に削除される")
 }
 
-func TestDeleteUser_正常系_ManagerがUserを退会させる(t *testing.T) {
+func TestDeleteUser_Success_ManagerDeletesUser(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -387,7 +387,7 @@ func TestDeleteUser_正常系_ManagerがUserを退会させる(t *testing.T) {
 	require.NoError(t, err, "ManagerがUserを正常に削除できる")
 }
 
-func TestDeleteUser_正常系_Managerが退会するとOrganizationも削除(t *testing.T) {
+func TestDeleteUser_Success_ManagerDeletionRemovesOrganization(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -402,7 +402,7 @@ func TestDeleteUser_正常系_Managerが退会するとOrganizationも削除(t *
 	require.NoError(t, err, "Managerが退会するとOrganizationも削除される")
 }
 
-func TestDeleteUser_異常系_権限がない(t *testing.T) {
+func TestDeleteUser_PermissionDenied(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -431,10 +431,10 @@ func TestDeleteUser_異常系_権限がない(t *testing.T) {
 }
 
 // ============================================================================
-// DeleteOrganization のテスト
+// Tests for DeleteOrganization
 // ============================================================================
 
-func TestDeleteOrganization_正常系(t *testing.T) {
+func TestDeleteOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -450,10 +450,10 @@ func TestDeleteOrganization_正常系(t *testing.T) {
 }
 
 // ============================================================================
-// ResendInvitation のテスト
+// Tests for ResendInvitation
 // ============================================================================
 
-func TestResendInvitation_正常系(t *testing.T) {
+func TestResendInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -471,7 +471,7 @@ func TestResendInvitation_正常系(t *testing.T) {
 	require.NoError(t, err, "Managerが正常に招待を再送信できる")
 }
 
-func TestResendInvitation_異常系_Userが実行(t *testing.T) {
+func TestResendInvitation_UserCannotExecute(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -498,10 +498,10 @@ func TestResendInvitation_異常系_Userが実行(t *testing.T) {
 }
 
 // ============================================================================
-// UpdateProfile のテスト
+// Tests for UpdateProfile
 // ============================================================================
 
-func TestUpdateProfile_正常系(t *testing.T) {
+func TestUpdateProfile_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -520,7 +520,7 @@ func TestUpdateProfile_正常系(t *testing.T) {
 	require.NoError(t, err, "自分のプロフィールが正常に更新される")
 }
 
-func TestUpdateProfile_異常系_他人のプロフィールを更新(t *testing.T) {
+func TestUpdateProfile_CannotUpdateOthersProfile(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -553,10 +553,10 @@ func TestUpdateProfile_異常系_他人のプロフィールを更新(t *testing
 }
 
 // ============================================================================
-// UpdateOrganization のテスト
+// Tests for UpdateOrganization
 // ============================================================================
 
-func TestUpdateOrganization_正常系(t *testing.T) {
+func TestUpdateOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -575,7 +575,7 @@ func TestUpdateOrganization_正常系(t *testing.T) {
 	require.NoError(t, err, "Managerが正常にOrganizationを更新できる")
 }
 
-func TestUpdateOrganization_異常系_Userが実行(t *testing.T) {
+func TestUpdateOrganization_UserCannotExecute(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -603,10 +603,10 @@ func TestUpdateOrganization_異常系_Userが実行(t *testing.T) {
 }
 
 // ============================================================================
-// ValidateOrganizationAccess のテスト
+// Tests for ValidateOrganizationAccess
 // ============================================================================
 
-func TestValidateOrganizationAccess_正常系(t *testing.T) {
+func TestValidateOrganizationAccess_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -621,7 +621,7 @@ func TestValidateOrganizationAccess_正常系(t *testing.T) {
 	require.NoError(t, err, "organization_idが一致する場合、アクセスが許可される")
 }
 
-func TestValidateOrganizationAccess_異常系_organization_id不一致(t *testing.T) {
+func TestValidateOrganizationAccess_OrganizationIDMismatch(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -643,10 +643,10 @@ func TestValidateOrganizationAccess_異常系_organization_id不一致(t *testin
 }
 
 // ============================================================================
-// CheckPermission のテスト
+// Tests for CheckPermission
 // ============================================================================
 
-func TestCheckPermission_正常系_ManagerがUpdate権限(t *testing.T) {
+func TestCheckPermission_Success_ManagerHasUpdatePermission(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -663,7 +663,7 @@ func TestCheckPermission_正常系_ManagerがUpdate権限(t *testing.T) {
 	require.NoError(t, err, "ManagerがOrganizationのUpdate権限を持つ")
 }
 
-func TestCheckPermission_正常系_UserがRead権限(t *testing.T) {
+func TestCheckPermission_Success_UserHasReadPermission(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -687,7 +687,7 @@ func TestCheckPermission_正常系_UserがRead権限(t *testing.T) {
 	require.NoError(t, err, "UserがOrganizationのRead権限を持つ")
 }
 
-func TestCheckPermission_異常系_UserがUpdateを実行(t *testing.T) {
+func TestCheckPermission_UserCannotUpdate(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -714,10 +714,10 @@ func TestCheckPermission_異常系_UserがUpdateを実行(t *testing.T) {
 }
 
 // ============================================================================
-// 共通処理：トークン生成のテスト
+// Tests for common utilities: token generation
 // ============================================================================
 
-func TestGenerateToken_正常系(t *testing.T) {
+func TestGenerateToken_Success(t *testing.T) {
 	m := NewManager(DefaultConfig())
 
 	token1, err1 := m.GenerateToken()
@@ -731,10 +731,10 @@ func TestGenerateToken_正常系(t *testing.T) {
 }
 
 // ============================================================================
-// 共通処理：有効期限計算のテスト
+// Tests for common utilities: expiry calculation
 // ============================================================================
 
-func TestCalculateExpiry_正常系(t *testing.T) {
+func TestCalculateExpiry_Success(t *testing.T) {
 	config := DefaultConfig()
 	config.InvitationExpiryDuration = 24 * time.Hour
 	m := NewManager(config)
@@ -748,10 +748,10 @@ func TestCalculateExpiry_正常系(t *testing.T) {
 }
 
 // ============================================================================
-// 共通処理：有効期限チェックのテスト
+// Tests for common utilities: expiry check
 // ============================================================================
 
-func TestIsExpired_正常系_有効期限内(t *testing.T) {
+func TestIsExpired_Success_WithinValidityPeriod(t *testing.T) {
 	m := NewManager(DefaultConfig())
 
 	expiresAt := time.Now().Add(1 * time.Hour)
@@ -761,7 +761,7 @@ func TestIsExpired_正常系_有効期限内(t *testing.T) {
 	assert.False(t, result, "有効期限内の場合、falseが返される")
 }
 
-func TestIsExpired_正常系_有効期限切れ(t *testing.T) {
+func TestIsExpired_Success_Expired(t *testing.T) {
 	m := NewManager(DefaultConfig())
 
 	expiresAt := time.Now().Add(-1 * time.Hour)
@@ -772,10 +772,10 @@ func TestIsExpired_正常系_有効期限切れ(t *testing.T) {
 }
 
 // ============================================================================
-// GetOrganizationBySignature のテスト
+// Tests for GetOrganizationBySignature
 // ============================================================================
 
-func TestGetOrganizationBySignature_正常系(t *testing.T) {
+func TestGetOrganizationBySignature_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := storage.NewInMemoryStorage()
 	config := DefaultConfig()
@@ -799,7 +799,7 @@ func TestGetOrganizationBySignature_正常系(t *testing.T) {
 	assert.Equal(t, org.Signature, retrievedOrg.Signature, "Signatureが一致する")
 }
 
-func TestGetOrganizationBySignature_異常系_存在しないSignature(t *testing.T) {
+func TestGetOrganizationBySignature_NotFound(t *testing.T) {
 	ctx := context.Background()
 	storage := storage.NewInMemoryStorage()
 
@@ -811,7 +811,7 @@ func TestGetOrganizationBySignature_異常系_存在しないSignature(t *testin
 	assert.Nil(t, retrievedOrg, "Organizationが取得されない")
 }
 
-func TestGetOrganizationBySignature_正常系_日本の法人番号(t *testing.T) {
+func TestGetOrganizationBySignature_Success_JapaneseCorporateNumber(t *testing.T) {
 	ctx := context.Background()
 	storage := storage.NewInMemoryStorage()
 
@@ -833,7 +833,7 @@ func TestGetOrganizationBySignature_正常系_日本の法人番号(t *testing.T
 	assert.Equal(t, org.ID, retrievedOrg.ID, "正しいOrganizationが取得される")
 }
 
-func TestGetOrganizationBySignature_正常系_ユニーク制約(t *testing.T) {
+func TestGetOrganizationBySignature_Success_UniqueConstraint(t *testing.T) {
 	ctx := context.Background()
 	storage := storage.NewInMemoryStorage()
 
@@ -857,17 +857,21 @@ func TestGetOrganizationBySignature_正常系_ユニーク制約(t *testing.T) {
 	err = storage.CreateOrganization(ctx, org2)
 	require.NoError(t, err) // インメモリストレージではユニーク制約がチェックされない
 	
-	// GetOrganizationBySignatureが最初のOrganizationを返すことを確認
+	// GetOrganizationBySignatureがどちらかのOrganizationを返すことを確認
+	// 注意: mapのイテレーション順序は保証されないため、org1またはorg2のどちらかが返される
 	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "duplicate-signature-12345")
 	require.NoError(t, err)
-	assert.Equal(t, org1.ID, retrievedOrg.ID, "最初に作成されたOrganizationが取得される")
+	assert.NotNil(t, retrievedOrg, "Organizationが取得される")
+	assert.Equal(t, "duplicate-signature-12345", retrievedOrg.Signature, "Signatureが一致する")
+	// org1またはorg2のどちらかが返されることを確認
+	assert.True(t, retrievedOrg.ID == org1.ID || retrievedOrg.ID == org2.ID, "作成したOrganizationのいずれかが取得される")
 }
 
 // ============================================================================
-// UpdatePassword のテスト
+// Tests for UpdatePassword
 // ============================================================================
 
-func TestUpdatePassword_正常系(t *testing.T) {
+func TestUpdatePassword_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -893,7 +897,7 @@ func TestUpdatePassword_正常系(t *testing.T) {
 	assert.Equal(t, InvitationStatusAccepted, updatedInvitation.Status, "招待がacceptedになる")
 }
 
-func TestUpdatePassword_異常系_権限がない(t *testing.T) {
+func TestUpdatePassword_PermissionDenied(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -913,7 +917,7 @@ func TestUpdatePassword_異常系_権限がない(t *testing.T) {
 	assert.Equal(t, ErrOrganizationAccessDenied, err, "権限エラーが返される")
 }
 
-func TestUpdatePassword_異常系_ユーザーが存在しない(t *testing.T) {
+func TestUpdatePassword_UserNotFound(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	m := NewManager(config)
@@ -928,10 +932,10 @@ func TestUpdatePassword_異常系_ユーザーが存在しない(t *testing.T) {
 }
 
 // ============================================================================
-// GetInvitationURL のテスト
+// Tests for GetInvitationURL
 // ============================================================================
 
-func TestGetInvitationURL_正常系(t *testing.T) {
+func TestGetInvitationURL_Success(t *testing.T) {
 	config := DefaultConfig()
 	config.InvitationBaseURL = "http://localhost:8080"
 	m := NewManager(config)
@@ -943,7 +947,7 @@ func TestGetInvitationURL_正常系(t *testing.T) {
 	assert.Equal(t, expectedURL, url, "正しいURLが生成される")
 }
 
-func TestGetInvitationURL_BaseURLが空の場合(t *testing.T) {
+func TestGetInvitationURL_EmptyBaseURL(t *testing.T) {
 	config := DefaultConfig()
 	config.InvitationBaseURL = ""
 	m := NewManager(config)
@@ -955,10 +959,10 @@ func TestGetInvitationURL_BaseURLが空の場合(t *testing.T) {
 }
 
 // ============================================================================
-// ValidateInvitationTokenAndGetRedirectURL のテスト
+// Tests for ValidateInvitationTokenAndGetRedirectURL
 // ============================================================================
 
-func TestValidateInvitationTokenAndGetRedirectURL_正常系(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_Success(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -980,7 +984,7 @@ func TestValidateInvitationTokenAndGetRedirectURL_正常系(t *testing.T) {
 	assert.Contains(t, redirectURL, invitation.Token, "トークンが含まれる")
 }
 
-func TestValidateInvitationTokenAndGetRedirectURL_デフォルトパス(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_DefaultPath(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -1002,7 +1006,7 @@ func TestValidateInvitationTokenAndGetRedirectURL_デフォルトパス(t *testi
 	assert.Contains(t, redirectURL, invitation.Token, "トークンが含まれる")
 }
 
-func TestValidateInvitationTokenAndGetRedirectURL_異常系_無効なトークン(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_InvalidToken(t *testing.T) {
 	ctx := context.Background()
 	m := NewManager(DefaultConfig())
 
@@ -1013,7 +1017,7 @@ func TestValidateInvitationTokenAndGetRedirectURL_異常系_無効なトーク�
 	assert.Equal(t, ErrInvalidToken, err, "無効なトークンエラーが返される")
 }
 
-func TestValidateInvitationTokenAndGetRedirectURL_異常系_有効期限切れ(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_Expired(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -1038,7 +1042,7 @@ func TestValidateInvitationTokenAndGetRedirectURL_異常系_有効期限切れ(t
 	assert.Equal(t, ErrInvitationExpired, err, "有効期限切れエラーが返される")
 }
 
-func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にaccepted(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_AlreadyAccepted(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -1063,7 +1067,7 @@ func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にaccepted(t *te
 	assert.Equal(t, ErrInvitationAlreadyAccepted, err, "既にacceptedエラーが返される")
 }
 
-func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にrejected(t *testing.T) {
+func TestValidateInvitationTokenAndGetRedirectURL_AlreadyRejected(t *testing.T) {
 	ctx := context.Background()
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
@@ -1089,10 +1093,10 @@ func TestValidateInvitationTokenAndGetRedirectURL_異常系_既にrejected(t *te
 }
 
 // ============================================================================
-// SetStorage のテスト
+// Tests for SetStorage
 // ============================================================================
 
-func TestSetStorage_正常系(t *testing.T) {
+func TestSetStorage_Success(t *testing.T) {
 	storage1 := storage.NewInMemoryStorage()
 	handler := NewDefaultDeletionHandler(storage1)
 
@@ -1104,25 +1108,25 @@ func TestSetStorage_正常系(t *testing.T) {
 }
 
 // ============================================================================
-// VersionInfo のテスト
+// Tests for VersionInfo
 // ============================================================================
 
-func TestVersionInfo_正常系(t *testing.T) {
+func TestVersionInfo_Success(t *testing.T) {
 	version := VersionInfo()
 	assert.Equal(t, Version, version, "バージョン情報が正しく返される")
 	assert.NotEmpty(t, version, "バージョン情報が空でない")
 }
 
 // ============================================================================
-// InMemoryStorage のテスト
+// Tests for InMemoryStorage
 // ============================================================================
 
-func TestNewInMemoryStorage_正常系(t *testing.T) {
+func TestNewInMemoryStorage_Success(t *testing.T) {
 	storage := NewInMemoryStorage()
 	assert.NotNil(t, storage, "ストレージが作成される")
 }
 
-func TestInMemoryStorage_CreateOrganization_正常系(t *testing.T) {
+func TestInMemoryStorage_CreateOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1138,7 +1142,7 @@ func TestInMemoryStorage_CreateOrganization_正常系(t *testing.T) {
 	assert.NotZero(t, org.ID, "IDが設定される")
 }
 
-func TestInMemoryStorage_GetOrganization_正常系(t *testing.T) {
+func TestInMemoryStorage_GetOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1156,7 +1160,7 @@ func TestInMemoryStorage_GetOrganization_正常系(t *testing.T) {
 	assert.Equal(t, org.ID, retrievedOrg.ID, "正しいOrganizationが取得される")
 }
 
-func TestInMemoryStorage_GetOrganization_異常系_存在しない(t *testing.T) {
+func TestInMemoryStorage_GetOrganization_NotFound(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1165,7 +1169,7 @@ func TestInMemoryStorage_GetOrganization_異常系_存在しない(t *testing.T)
 	assert.Equal(t, ErrOrganizationNotFound, err, "OrganizationNotFoundエラーが返される")
 }
 
-func TestInMemoryStorage_UpdateOrganization_正常系(t *testing.T) {
+func TestInMemoryStorage_UpdateOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1187,7 +1191,7 @@ func TestInMemoryStorage_UpdateOrganization_正常系(t *testing.T) {
 	assert.Equal(t, "更新された組織名", updatedOrg.Name, "名前が更新される")
 }
 
-func TestInMemoryStorage_DeleteOrganization_正常系(t *testing.T) {
+func TestInMemoryStorage_DeleteOrganization_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1207,7 +1211,7 @@ func TestInMemoryStorage_DeleteOrganization_正常系(t *testing.T) {
 	assert.Error(t, err, "削除後は取得できない")
 }
 
-func TestInMemoryStorage_ListOrganizations_正常系(t *testing.T) {
+func TestInMemoryStorage_ListOrganizations_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1234,7 +1238,7 @@ func TestInMemoryStorage_ListOrganizations_正常系(t *testing.T) {
 	assert.GreaterOrEqual(t, len(orgs), 2, "2つ以上のOrganizationが取得される")
 }
 
-func TestInMemoryStorage_CreateUser_正常系(t *testing.T) {
+func TestInMemoryStorage_CreateUser_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1252,7 +1256,7 @@ func TestInMemoryStorage_CreateUser_正常系(t *testing.T) {
 	assert.NotZero(t, user.ID, "IDが設定される")
 }
 
-func TestInMemoryStorage_GetUser_正常系(t *testing.T) {
+func TestInMemoryStorage_GetUser_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1272,7 +1276,7 @@ func TestInMemoryStorage_GetUser_正常系(t *testing.T) {
 	assert.Equal(t, user.ID, retrievedUser.ID, "正しいUserが取得される")
 }
 
-func TestInMemoryStorage_GetUserByEmail_正常系(t *testing.T) {
+func TestInMemoryStorage_GetUserByEmail_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1292,7 +1296,7 @@ func TestInMemoryStorage_GetUserByEmail_正常系(t *testing.T) {
 	assert.Equal(t, user.Email, retrievedUser.Email, "正しいUserが取得される")
 }
 
-func TestInMemoryStorage_GetUsersByOrganizationID_正常系(t *testing.T) {
+func TestInMemoryStorage_GetUsersByOrganizationID_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1323,7 +1327,7 @@ func TestInMemoryStorage_GetUsersByOrganizationID_正常系(t *testing.T) {
 	assert.GreaterOrEqual(t, len(users), 2, "2つ以上のUserが取得される")
 }
 
-func TestInMemoryStorage_UpdateUser_正常系(t *testing.T) {
+func TestInMemoryStorage_UpdateUser_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1347,7 +1351,7 @@ func TestInMemoryStorage_UpdateUser_正常系(t *testing.T) {
 	assert.Equal(t, RoleManager, updatedUser.Role, "ロールが更新される")
 }
 
-func TestInMemoryStorage_DeleteUser_正常系(t *testing.T) {
+func TestInMemoryStorage_DeleteUser_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1369,7 +1373,7 @@ func TestInMemoryStorage_DeleteUser_正常系(t *testing.T) {
 	assert.Error(t, err, "削除後は取得できない")
 }
 
-func TestInMemoryStorage_CreateInvitation_正常系(t *testing.T) {
+func TestInMemoryStorage_CreateInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1387,7 +1391,7 @@ func TestInMemoryStorage_CreateInvitation_正常系(t *testing.T) {
 	assert.NotZero(t, invitation.ID, "IDが設定される")
 }
 
-func TestInMemoryStorage_GetInvitationByToken_正常系(t *testing.T) {
+func TestInMemoryStorage_GetInvitationByToken_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1407,7 +1411,7 @@ func TestInMemoryStorage_GetInvitationByToken_正常系(t *testing.T) {
 	assert.Equal(t, invitation.Token, retrievedInvitation.Token, "正しいInvitationが取得される")
 }
 
-func TestInMemoryStorage_GetInvitationByID_正常系(t *testing.T) {
+func TestInMemoryStorage_GetInvitationByID_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1427,7 +1431,7 @@ func TestInMemoryStorage_GetInvitationByID_正常系(t *testing.T) {
 	assert.Equal(t, invitation.ID, retrievedInvitation.ID, "正しいInvitationが取得される")
 }
 
-func TestInMemoryStorage_GetInvitationsByOrganizationID_正常系(t *testing.T) {
+func TestInMemoryStorage_GetInvitationsByOrganizationID_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1458,7 +1462,7 @@ func TestInMemoryStorage_GetInvitationsByOrganizationID_正常系(t *testing.T) 
 	assert.GreaterOrEqual(t, len(invitations), 2, "2つ以上のInvitationが取得される")
 }
 
-func TestInMemoryStorage_GetInvitationsByEmail_正常系(t *testing.T) {
+func TestInMemoryStorage_GetInvitationsByEmail_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1489,7 +1493,7 @@ func TestInMemoryStorage_GetInvitationsByEmail_正常系(t *testing.T) {
 	assert.GreaterOrEqual(t, len(invitations), 2, "2つ以上のInvitationが取得される")
 }
 
-func TestInMemoryStorage_UpdateInvitation_正常系(t *testing.T) {
+func TestInMemoryStorage_UpdateInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1513,7 +1517,7 @@ func TestInMemoryStorage_UpdateInvitation_正常系(t *testing.T) {
 	assert.Equal(t, InvitationStatusAccepted, updatedInvitation.Status, "ステータスが更新される")
 }
 
-func TestInMemoryStorage_DeleteInvitation_正常系(t *testing.T) {
+func TestInMemoryStorage_DeleteInvitation_Success(t *testing.T) {
 	ctx := context.Background()
 	storage := NewInMemoryStorage()
 
@@ -1536,7 +1540,7 @@ func TestInMemoryStorage_DeleteInvitation_正常系(t *testing.T) {
 }
 
 // ============================================================================
-// DefaultConfig のテスト
+// Tests for DefaultConfig
 // ============================================================================
 
 func TestDefaultConfig_EnableAutoLoginAfterPasswordReset(t *testing.T) {
@@ -1544,7 +1548,7 @@ func TestDefaultConfig_EnableAutoLoginAfterPasswordReset(t *testing.T) {
 	assert.True(t, config.EnableAutoLoginAfterPasswordReset, "デフォルトで自動ログインが有効になっている必要があります")
 }
 
-func TestDefaultConfig_他の設定値(t *testing.T) {
+func TestDefaultConfig_OtherSettings(t *testing.T) {
 	config := DefaultConfig()
 	assert.Equal(t, 24*time.Hour, config.InvitationExpiryDuration, "招待の有効期限が24時間に設定されている必要があります")
 	assert.Equal(t, RoleUser, config.DefaultRole, "デフォルトロールがuserに設定されている必要があります")
@@ -1554,10 +1558,10 @@ func TestDefaultConfig_他の設定値(t *testing.T) {
 }
 
 // ============================================================================
-// テンプレート設定のテスト
+// Tests for template settings
 // ============================================================================
 
-func TestNewManager_テンプレート設定が適用される(t *testing.T) {
+func TestNewManager_TemplateSettingsApplied(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
 	
@@ -1588,7 +1592,7 @@ func TestNewManager_テンプレート設定が適用される(t *testing.T) {
 	assert.Contains(t, message, "From: custom@example.com", "差出人が設定されている")
 }
 
-func TestNewManager_テンプレート設定なしでも動作する(t *testing.T) {
+func TestNewManager_WorksWithoutTemplateSettings(t *testing.T) {
 	config := DefaultConfig()
 	smtpSender := email.NewSMTPEmailSender()
 	config.EmailSender = smtpSender
@@ -1603,7 +1607,7 @@ func TestNewManager_テンプレート設定なしでも動作する(t *testing.
 	assert.NotNil(t, smtpSenderFromConfig, "SMTPEmailSenderが設定されている")
 }
 
-func TestNewManagerWithStorage_テンプレート設定が適用される(t *testing.T) {
+func TestNewManagerWithStorage_TemplateSettingsApplied(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
 	
@@ -1635,7 +1639,7 @@ func TestNewManagerWithStorage_テンプレート設定が適用される(t *tes
 	assert.Contains(t, message, "From: custom@example.com", "差出人が設定されている")
 }
 
-func TestDefaultConfig_テンプレート設定のデフォルト値(t *testing.T) {
+func TestDefaultConfig_TemplateSettingsDefaultValues(t *testing.T) {
 	config := DefaultConfig()
 	assert.Empty(t, config.InvitationEmailSubjectTemplatePath, "デフォルトで件名テンプレートパスが空")
 	assert.Empty(t, config.InvitationEmailBodyTemplatePath, "デフォルトで本文テンプレートパスが空")

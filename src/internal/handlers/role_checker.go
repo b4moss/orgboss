@@ -1,23 +1,23 @@
 package handlers
 
-import "orgboss"
+import "github.com/b4m-oss/orgboss"
 
-// DefaultRoleChecker はデフォルトのRoleChecker実装
+// DefaultRoleChecker is the default RoleChecker implementation
 type DefaultRoleChecker struct{}
 
-// NewDefaultRoleChecker は新しいDefaultRoleCheckerを作成する
+// NewDefaultRoleChecker creates a new DefaultRoleChecker
 func NewDefaultRoleChecker() *DefaultRoleChecker {
 	return &DefaultRoleChecker{}
 }
 
-// HasPermission はロールとアクションに基づいて権限をチェックする
+// HasPermission checks permissions based on role and action
 func (r *DefaultRoleChecker) HasPermission(role orgboss.Role, action string) bool {
 	switch role {
 	case orgboss.RoleManager:
-		// managerは全てのアクションを実行可能
+		// manager can execute all actions
 		return true
 	case orgboss.RoleUser:
-		// userはreadのみ実行可能
+		// user can only execute read
 		return action == "read"
 	default:
 		return false

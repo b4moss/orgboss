@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log"
 
-	"orgboss/internal/database"
-	"orgboss/internal/seed"
+	"github.com/b4m-oss/orgboss/internal/database"
+	"github.com/b4m-oss/orgboss/internal/seed"
 )
 
 func main() {

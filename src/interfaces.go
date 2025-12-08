@@ -1,8 +1,8 @@
 package orgboss
 
-import "orgboss/types"
+import "github.com/b4m-oss/orgboss/types"
 
-// インターフェースも types パッケージのものを再エクスポート
+// Re-export interfaces from the types package
 type Storage = types.Storage
 type RoleChecker = types.RoleChecker
 type DeletionHandler = types.DeletionHandler

@@ -2,7 +2,7 @@ package orgboss
 
 import "context"
 
-// NewInMemoryStorage は新しいInMemoryStorageを作成する
+// NewInMemoryStorage creates a new InMemoryStorage
 func NewInMemoryStorage() Storage {
 	return &InMemoryStorage{
 		organizations:   make(map[uint]*Organization),
@@ -15,7 +15,7 @@ func NewInMemoryStorage() Storage {
 	}
 }
 
-// InMemoryStorage はインメモリストレージの実装
+// InMemoryStorage is an in-memory storage implementation
 type InMemoryStorage struct {
 	organizations   map[uint]*Organization
 	users           map[uint]*User
@@ -26,7 +26,7 @@ type InMemoryStorage struct {
 	nextInvID       uint
 }
 
-// CreateOrganization はOrganizationを作成する
+// CreateOrganization creates an Organization
 func (s *InMemoryStorage) CreateOrganization(ctx context.Context, org *Organization) error {
 	if org.ID == 0 {
 		org.ID = s.nextOrgID
@@ -36,7 +36,7 @@ func (s *InMemoryStorage) CreateOrganization(ctx context.Context, org *Organizat
 	return nil
 }
 
-// GetOrganization はOrganizationを取得する
+// GetOrganization gets an Organization
 func (s *InMemoryStorage) GetOrganization(ctx context.Context, id uint) (*Organization, error) {
 	org, exists := s.organizations[id]
 	if !exists {
@@ -45,7 +45,7 @@ func (s *InMemoryStorage) GetOrganization(ctx context.Context, id uint) (*Organi
 	return org, nil
 }
 
-// GetOrganizationBySignature はSignatureでOrganizationを取得する
+// GetOrganizationBySignature gets an Organization by Signature
 func (s *InMemoryStorage) GetOrganizationBySignature(ctx context.Context, signature string) (*Organization, error) {
 	for _, org := range s.organizations {
 		if org.Signature == signature {
@@ -55,7 +55,7 @@ func (s *InMemoryStorage) GetOrganizationBySignature(ctx context.Context, signat
 	return nil, ErrOrganizationNotFound
 }
 
-// UpdateOrganization はOrganizationを更新する
+// UpdateOrganization updates an Organization
 func (s *InMemoryStorage) UpdateOrganization(ctx context.Context, org *Organization) error {
 	if _, exists := s.organizations[org.ID]; !exists {
 		return ErrOrganizationNotFound
@@ -64,7 +64,7 @@ func (s *InMemoryStorage) UpdateOrganization(ctx context.Context, org *Organizat
 	return nil
 }
 
-// DeleteOrganization はOrganizationを削除する
+// DeleteOrganization deletes an Organization
 func (s *InMemoryStorage) DeleteOrganization(ctx context.Context, id uint) error {
 	if _, exists := s.organizations[id]; !exists {
 		return ErrOrganizationNotFound
@@ -73,7 +73,7 @@ func (s *InMemoryStorage) DeleteOrganization(ctx context.Context, id uint) error
 	return nil
 }
 
-// ListOrganizations は全てのOrganizationを取得する
+// ListOrganizations gets all Organizations
 func (s *InMemoryStorage) ListOrganizations(ctx context.Context) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, len(s.organizations))
 	for _, org := range s.organizations {
@@ -82,7 +82,7 @@ func (s *InMemoryStorage) ListOrganizations(ctx context.Context) ([]*Organizatio
 	return orgs, nil
 }
 
-// CreateUser はUserを作成する
+// CreateUser creates a User
 func (s *InMemoryStorage) CreateUser(ctx context.Context, user *User) error {
 	if user.ID == 0 {
 		user.ID = s.nextUserID
@@ -92,7 +92,7 @@ func (s *InMemoryStorage) CreateUser(ctx context.Context, user *User) error {
 	return nil
 }
 
-// GetUser はUserを取得する
+// GetUser gets a User
 func (s *InMemoryStorage) GetUser(ctx context.Context, id uint) (*User, error) {
 	user, exists := s.users[id]
 	if !exists {
@@ -101,7 +101,7 @@ func (s *InMemoryStorage) GetUser(ctx context.Context, id uint) (*User, error) {
 	return user, nil
 }
 
-// GetUserByEmail はメールアドレスでUserを取得する
+// GetUserByEmail gets a User by email address
 func (s *InMemoryStorage) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	for _, user := range s.users {
 		if user.Email == email {
@@ -111,7 +111,7 @@ func (s *InMemoryStorage) GetUserByEmail(ctx context.Context, email string) (*Us
 	return nil, ErrUserNotFound
 }
 
-// GetUsersByOrganizationID は組織IDでUserを取得する
+// GetUsersByOrganizationID gets Users by organization ID
 func (s *InMemoryStorage) GetUsersByOrganizationID(ctx context.Context, orgID uint) ([]*User, error) {
 	users := make([]*User, 0)
 	for _, user := range s.users {
@@ -122,7 +122,7 @@ func (s *InMemoryStorage) GetUsersByOrganizationID(ctx context.Context, orgID ui
 	return users, nil
 }
 
-// UpdateUser はUserを更新する
+// UpdateUser updates a User
 func (s *InMemoryStorage) UpdateUser(ctx context.Context, user *User) error {
 	if _, exists := s.users[user.ID]; !exists {
 		return ErrUserNotFound
@@ -131,7 +131,7 @@ func (s *InMemoryStorage) UpdateUser(ctx context.Context, user *User) error {
 	return nil
 }
 
-// DeleteUser はUserを削除する
+// DeleteUser deletes a User
 func (s *InMemoryStorage) DeleteUser(ctx context.Context, id uint) error {
 	if _, exists := s.users[id]; !exists {
 		return ErrUserNotFound
@@ -140,7 +140,7 @@ func (s *InMemoryStorage) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-// CreateInvitation はInvitationを作成する
+// CreateInvitation creates an Invitation
 func (s *InMemoryStorage) CreateInvitation(ctx context.Context, invitation *Invitation) error {
 	if invitation.ID == 0 {
 		invitation.ID = s.nextInvID
@@ -151,7 +151,7 @@ func (s *InMemoryStorage) CreateInvitation(ctx context.Context, invitation *Invi
 	return nil
 }
 
-// GetInvitationByToken はトークンでInvitationを取得する
+// GetInvitationByToken gets an Invitation by token
 func (s *InMemoryStorage) GetInvitationByToken(ctx context.Context, token string) (*Invitation, error) {
 	invitation, exists := s.invitations[token]
 	if !exists {
@@ -160,7 +160,7 @@ func (s *InMemoryStorage) GetInvitationByToken(ctx context.Context, token string
 	return invitation, nil
 }
 
-// GetInvitationByID はIDでInvitationを取得する
+// GetInvitationByID gets an Invitation by ID
 func (s *InMemoryStorage) GetInvitationByID(ctx context.Context, id uint) (*Invitation, error) {
 	invitation, exists := s.invitationsByID[id]
 	if !exists {
@@ -169,7 +169,7 @@ func (s *InMemoryStorage) GetInvitationByID(ctx context.Context, id uint) (*Invi
 	return invitation, nil
 }
 
-// GetInvitationsByOrganizationID は組織IDでInvitationを取得する
+// GetInvitationsByOrganizationID gets Invitations by organization ID
 func (s *InMemoryStorage) GetInvitationsByOrganizationID(ctx context.Context, orgID uint) ([]*Invitation, error) {
 	invitations := make([]*Invitation, 0)
 	for _, invitation := range s.invitations {
@@ -180,7 +180,7 @@ func (s *InMemoryStorage) GetInvitationsByOrganizationID(ctx context.Context, or
 	return invitations, nil
 }
 
-// GetInvitationsByEmail はメールアドレスでInvitationを取得する
+// GetInvitationsByEmail gets Invitations by email address
 func (s *InMemoryStorage) GetInvitationsByEmail(ctx context.Context, email string) ([]*Invitation, error) {
 	invitations := make([]*Invitation, 0)
 	for _, invitation := range s.invitations {
@@ -191,7 +191,7 @@ func (s *InMemoryStorage) GetInvitationsByEmail(ctx context.Context, email strin
 	return invitations, nil
 }
 
-// UpdateInvitation はInvitationを更新する
+// UpdateInvitation updates an Invitation
 func (s *InMemoryStorage) UpdateInvitation(ctx context.Context, invitation *Invitation) error {
 	if _, exists := s.invitationsByID[invitation.ID]; !exists {
 		return ErrInvitationNotFound
@@ -201,7 +201,7 @@ func (s *InMemoryStorage) UpdateInvitation(ctx context.Context, invitation *Invi
 	return nil
 }
 
-// DeleteInvitation はInvitationを削除する
+// DeleteInvitation deletes an Invitation
 func (s *InMemoryStorage) DeleteInvitation(ctx context.Context, id uint) error {
 	invitation, exists := s.invitationsByID[id]
 	if !exists {
