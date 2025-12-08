@@ -2,12 +2,15 @@ package orgboss
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	
+	"orgboss/internal/email"
 	"orgboss/internal/storage"
 )
 
@@ -1548,4 +1551,93 @@ func TestDefaultConfig_他の設定値(t *testing.T) {
 	assert.True(t, config.EnableBulkInvite, "バルク招待がデフォルトで有効になっている必要があります")
 	assert.Equal(t, 100, config.MaxBulkInviteCount, "バルク招待の最大数が100に設定されている必要があります")
 	assert.Equal(t, "/reset-password", config.InvitationRedirectPath, "リダイレクトパスが/reset-passwordに設定されている必要があります")
+}
+
+// ============================================================================
+// テンプレート設定のテスト
+// ============================================================================
+
+func TestNewManager_テンプレート設定が適用される(t *testing.T) {
+	// 一時ディレクトリを作成
+	tmpDir := t.TempDir()
+	
+	// カスタムテンプレートファイルを作成
+	subjectPath := filepath.Join(tmpDir, "subject.txt")
+	err := os.WriteFile(subjectPath, []byte("カスタム件名"), 0644)
+	require.NoError(t, err)
+
+	bodyPath := filepath.Join(tmpDir, "body.txt")
+	err = os.WriteFile(bodyPath, []byte("カスタム本文"), 0644)
+	require.NoError(t, err)
+
+	config := DefaultConfig()
+	smtpSender := email.NewSMTPEmailSender()
+	config.EmailSender = smtpSender
+	config.InvitationEmailSubjectTemplatePath = subjectPath
+	config.InvitationEmailBodyTemplatePath = bodyPath
+	config.InvitationEmailFrom = "custom@example.com"
+
+	m := NewManager(config)
+	assert.NotNil(t, m, "Managerが作成される")
+
+	// SMTPEmailSenderに型アサーションしてテンプレート設定が適用されているか確認
+	smtpSenderFromConfig, ok := m.config.EmailSender.(*email.SMTPEmailSender)
+	require.True(t, ok, "EmailSenderがSMTPEmailSenderである")
+	// BuildEmailMessageの結果から差出人が正しく設定されていることを確認
+	message := smtpSenderFromConfig.BuildEmailMessage("test@example.com", "テスト", "本文")
+	assert.Contains(t, message, "From: custom@example.com", "差出人が設定されている")
+}
+
+func TestNewManager_テンプレート設定なしでも動作する(t *testing.T) {
+	config := DefaultConfig()
+	smtpSender := email.NewSMTPEmailSender()
+	config.EmailSender = smtpSender
+	// テンプレートパスは設定しない
+
+	m := NewManager(config)
+	assert.NotNil(t, m, "Managerが作成される")
+
+	// SMTPEmailSenderが正しく設定されているか確認
+	smtpSenderFromConfig, ok := m.config.EmailSender.(*email.SMTPEmailSender)
+	require.True(t, ok, "EmailSenderがSMTPEmailSenderである")
+	assert.NotNil(t, smtpSenderFromConfig, "SMTPEmailSenderが設定されている")
+}
+
+func TestNewManagerWithStorage_テンプレート設定が適用される(t *testing.T) {
+	// 一時ディレクトリを作成
+	tmpDir := t.TempDir()
+	
+	// カスタムテンプレートファイルを作成
+	subjectPath := filepath.Join(tmpDir, "subject.txt")
+	err := os.WriteFile(subjectPath, []byte("カスタム件名"), 0644)
+	require.NoError(t, err)
+
+	bodyPath := filepath.Join(tmpDir, "body.txt")
+	err = os.WriteFile(bodyPath, []byte("カスタム本文"), 0644)
+	require.NoError(t, err)
+
+	config := DefaultConfig()
+	storage := storage.NewInMemoryStorage()
+	smtpSender := email.NewSMTPEmailSender()
+	config.EmailSender = smtpSender
+	config.InvitationEmailSubjectTemplatePath = subjectPath
+	config.InvitationEmailBodyTemplatePath = bodyPath
+	config.InvitationEmailFrom = "custom@example.com"
+
+	m := NewManagerWithStorage(config, storage)
+	assert.NotNil(t, m, "Managerが作成される")
+
+	// SMTPEmailSenderに型アサーションしてテンプレート設定が適用されているか確認
+	smtpSenderFromConfig, ok := m.config.EmailSender.(*email.SMTPEmailSender)
+	require.True(t, ok, "EmailSenderがSMTPEmailSenderである")
+	// BuildEmailMessageの結果から差出人が正しく設定されていることを確認
+	message := smtpSenderFromConfig.BuildEmailMessage("test@example.com", "テスト", "本文")
+	assert.Contains(t, message, "From: custom@example.com", "差出人が設定されている")
+}
+
+func TestDefaultConfig_テンプレート設定のデフォルト値(t *testing.T) {
+	config := DefaultConfig()
+	assert.Empty(t, config.InvitationEmailSubjectTemplatePath, "デフォルトで件名テンプレートパスが空")
+	assert.Empty(t, config.InvitationEmailBodyTemplatePath, "デフォルトで本文テンプレートパスが空")
+	assert.Empty(t, config.InvitationEmailFrom, "デフォルトで差出人が空")
 }

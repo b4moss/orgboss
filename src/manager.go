@@ -9,6 +9,7 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 
+	"orgboss/internal/email"
 	"orgboss/internal/storage"
 	"orgboss/internal/validation"
 )
@@ -37,6 +38,9 @@ func NewManager(config *Config) *Manager {
 		// DeletionHandlerのストレージを更新（DefaultConfigで作成されたストレージとManagerで使用するストレージを統一）
 		config.DeletionHandler.SetStorage(stor)
 	}
+
+	// EmailSenderがSMTPEmailSenderの場合、テンプレート設定を適用
+	applyEmailTemplateConfig(config)
 	
 	return &Manager{
 		config:  config,
@@ -61,6 +65,9 @@ func NewManagerWithStorage(config *Config, storage Storage) *Manager {
 		// DeletionHandlerのストレージを更新
 		config.DeletionHandler.SetStorage(storage)
 	}
+
+	// EmailSenderがSMTPEmailSenderの場合、テンプレート設定を適用
+	applyEmailTemplateConfig(config)
 	
 	return &Manager{
 		config:  config,
@@ -702,5 +709,28 @@ func (m *Manager) ValidateInvitationTokenAndGetRedirectURL(ctx context.Context, 
 	redirectURL := fmt.Sprintf("%s?token=%s", redirectPath, token)
 
 	return redirectURL, nil
+}
+
+// applyEmailTemplateConfig はEmailSenderがSMTPEmailSenderの場合、テンプレート設定を適用する
+func applyEmailTemplateConfig(config *Config) {
+	if config.EmailSender == nil {
+		return
+	}
+
+	// SMTPEmailSenderに型アサーション
+	smtpSender, ok := config.EmailSender.(*email.SMTPEmailSender)
+	if !ok {
+		return
+	}
+
+	// テンプレートパスが設定されている場合、適用
+	if config.InvitationEmailSubjectTemplatePath != "" || config.InvitationEmailBodyTemplatePath != "" {
+		smtpSender.SetTemplatePaths(config.InvitationEmailSubjectTemplatePath, config.InvitationEmailBodyTemplatePath)
+	}
+
+	// 差出人が設定されている場合、適用
+	if config.InvitationEmailFrom != "" {
+		smtpSender.SetFrom(config.InvitationEmailFrom)
+	}
 }
 
