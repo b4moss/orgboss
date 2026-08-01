@@ -30,52 +30,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Cache test results
-        uses: actions/cache@v4
-        id: test-cache
-        with:
-          path: |
-            src/coverage.out
-            src/coverage.html
-          key: ${{ runner.os }}-test-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-test-
-
       - name: Run go vet
         working-directory: src
         run: go vet ./...
 
-      - name: Check for code changes
-        id: changes
-        run: |
-          if git diff --quiet "${{ github.event.pull_request.base.sha }}" "${{ github.sha }}" -- 'src/**/*.go' '!src/**/*_test.go'; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Run unit tests
-        if: steps.changes.outputs.changed == 'true' || steps.test-cache.outputs.cache-hit != 'true'
         working-directory: src
         run: |
           go test -short -v ./...
-
-      - name: Run unit tests with coverage
-        if: steps.changes.outputs.changed == 'true' || steps.test-cache.outputs.cache-hit != 'true'
-        working-directory: src
-        run: |
-          go test -short -coverprofile=coverage.out -covermode=atomic ./...
-          go tool cover -html=coverage.out -o coverage.html
-
-      - name: Upload coverage to Codecov
-        if: steps.changes.outputs.changed == 'true' || steps.test-cache.outputs.cache-hit != 'true'
-        uses: codecov/codecov-action@v5
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: src/coverage.out
-          flags: unittests
-          name: orgboss
-          fail_ci_if_error: true
 
   integration-tests:
     name: Integration Tests
