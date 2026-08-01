@@ -1,8 +1,10 @@
 # orgboss
 
+**English** | [日本語](README_ja.md)
+
 Organization multi-tenant management package with authboss
 
-[![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
+[![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
 
 ## Features
 
@@ -16,7 +18,7 @@ Organization multi-tenant management package with authboss
 
 ## Requirements
 
-- Go 1.24 or higher
+- Go 1.25 or higher
 - PostgreSQL (for production use)
 - SMTP server (for email invitations)
 
@@ -335,7 +337,7 @@ make down
 
 ## Version
 
-Current version: **0.2.0**
+Current version: **0.3.0-.rc1**
 
 ## CAUTION: NEVER USE ON PRODUCTION
 
@@ -344,3 +346,7 @@ This module is not stable.
 ## LICENSE
 
 MIT License - see [LICENSE](LICENSE) file for details.
+
+----
+
+That's all

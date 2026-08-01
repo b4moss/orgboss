@@ -1,7 +1,7 @@
 // Package orgboss provides organization and multi-tenant management functionality
 // that integrates with the Authboss authentication package.
 //
-// Overview
+// # Overview
 //
 // orgboss manages organizations and users in a multi-tenant architecture.
 // Each organization can have multiple users with different roles (manager, user).
@@ -17,27 +17,27 @@
 //
 // Basic Usage
 //
-//   manager := orgboss.NewManager(nil)
-//   org, user, err := manager.CreateOrganizationWithUser(ctx, "My Organization", "user@example.com")
+//	manager := orgboss.NewManager(nil)
+//	org, user, err := manager.CreateOrganizationWithUser(ctx, "My Organization", "user@example.com")
 //
-// Configuration
+// # Configuration
 //
 // Use Config to customize behavior:
 //
-//   config := &orgboss.Config{
-//       InvitationExpiryDuration: 24 * time.Hour,
-//       DefaultRole:              orgboss.RoleUser,
-//       EnableBulkInvite:         true,
-//       MaxBulkInviteCount:       100,
-//   }
-//   manager := orgboss.NewManager(config)
+//	config := &orgboss.Config{
+//	    InvitationExpiryDuration: 24 * time.Hour,
+//	    DefaultRole:              orgboss.RoleUser,
+//	    EnableBulkInvite:         true,
+//	    MaxBulkInviteCount:       100,
+//	}
+//	manager := orgboss.NewManager(config)
 //
-// Storage
+// # Storage
 //
 // By default, orgboss uses an in-memory storage implementation. For production use,
 // implement the Storage interface and use NewManagerWithStorage.
 //
-// Customization
+// # Customization
 //
 // Implement the following interfaces to customize behavior:
 //
@@ -45,14 +45,14 @@
 //   - DeletionHandler: Custom deletion behavior (logical deletion, email masking, etc.)
 //   - EmailSender: Custom email sending implementation
 //
-// Hooks
+// # Hooks
 //
 // Register hooks to execute custom logic at various points:
 //
-//   manager.Hooks().BeforeOrganizationCreate = func(ctx context.Context, org *orgboss.Organization) error {
-//       // Custom logic before organization creation
-//       return nil
-//   }
+//	manager.Hooks().BeforeOrganizationCreate = func(ctx context.Context, org *orgboss.Organization) error {
+//	    // Custom logic before organization creation
+//	    return nil
+//	}
 //
 // See the documentation for each type and function for more details.
 package orgboss

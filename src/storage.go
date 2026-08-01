@@ -211,4 +211,3 @@ func (s *InMemoryStorage) DeleteInvitation(ctx context.Context, id uint) error {
 	delete(s.invitationsByID, id)
 	return nil
 }
-

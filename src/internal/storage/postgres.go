@@ -228,4 +228,3 @@ func (s *PostgresStorage) DeleteInvitation(ctx context.Context, id uint) error {
 func (s *PostgresStorage) DB() *gorm.DB {
 	return s.db
 }
-

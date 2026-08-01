@@ -31,13 +31,13 @@ type InvitationTemplateData struct {
 
 // SMTPEmailSender is an implementation that sends emails using SMTP
 type SMTPEmailSender struct {
-	host                    string
-	port                    int
-	from                    string
-	subjectTemplatePath     string
-	bodyTemplatePath        string
-	subjectTemplate         *template.Template
-	bodyTemplate            *template.Template
+	host                string
+	port                int
+	from                string
+	subjectTemplatePath string
+	bodyTemplatePath    string
+	subjectTemplate     *template.Template
+	bodyTemplate        *template.Template
 }
 
 // NewSMTPEmailSender creates an SMTPEmailSender by loading settings from environment variables
@@ -297,4 +297,3 @@ func getEnv(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

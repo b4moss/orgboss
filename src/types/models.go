@@ -22,9 +22,9 @@ const (
 
 // Organization represents an organization
 type Organization struct {
-	ID        uint      `gorm:"primaryKey"`
-	Name      string    `gorm:"not null"`
-	Signature string    `gorm:"uniqueIndex;not null"` // Unique identifier for the organization (corporate number or random string). Has unique constraint.
+	ID        uint   `gorm:"primaryKey"`
+	Name      string `gorm:"not null"`
+	Signature string `gorm:"uniqueIndex;not null"` // Unique identifier for the organization (corporate number or random string). Has unique constraint.
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	DeletedAt *time.Time `gorm:"index"`
@@ -44,12 +44,11 @@ type User struct {
 
 // Invitation represents an invitation
 type Invitation struct {
-	ID             uint            `gorm:"primaryKey"`
-	Email          string          `gorm:"not null;index"`
-	OrganizationID uint            `gorm:"not null;index"`
-	Token          string          `gorm:"uniqueIndex;not null"`
-	ExpiresAt      time.Time       `gorm:"not null"`
+	ID             uint             `gorm:"primaryKey"`
+	Email          string           `gorm:"not null;index"`
+	OrganizationID uint             `gorm:"not null;index"`
+	Token          string           `gorm:"uniqueIndex;not null"`
+	ExpiresAt      time.Time        `gorm:"not null"`
 	Status         InvitationStatus `gorm:"not null;default:'pending'"`
 	CreatedAt      time.Time
 }
-
