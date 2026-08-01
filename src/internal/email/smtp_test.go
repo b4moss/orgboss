@@ -11,7 +11,7 @@ import (
 
 func TestNewSMTPEmailSender_LoadDefaultTemplates(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	assert.NotNil(t, sender, "SMTPEmailSenderが作成される")
 	assert.NotNil(t, sender.subjectTemplate, "件名テンプレートが読み込まれる")
 	assert.NotNil(t, sender.bodyTemplate, "本文テンプレートが読み込まれる")
@@ -19,7 +19,7 @@ func TestNewSMTPEmailSender_LoadDefaultTemplates(t *testing.T) {
 
 func TestSMTPEmailSender_ExecuteDefaultTemplates(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	data := InvitationTemplateData{
 		Email:          "test@example.com",
 		InvitationURL:  "http://example.com/invite/token123",
@@ -41,7 +41,7 @@ func TestSMTPEmailSender_ExecuteDefaultTemplates(t *testing.T) {
 
 func TestSMTPEmailSender_ExecuteDefaultTemplates_WithoutURL(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	data := InvitationTemplateData{
 		Email:          "test@example.com",
 		InvitationURL:  "",
@@ -59,7 +59,7 @@ func TestSMTPEmailSender_ExecuteDefaultTemplates_WithoutURL(t *testing.T) {
 func TestSMTPEmailSender_SetTemplatePaths_CustomTemplates(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
-	
+
 	// カスタム件名テンプレートファイルを作成
 	subjectPath := filepath.Join(tmpDir, "subject.txt")
 	err := os.WriteFile(subjectPath, []byte("カスタム件名: {{.Email}}への招待"), 0644)
@@ -93,7 +93,7 @@ func TestSMTPEmailSender_SetTemplatePaths_CustomTemplates(t *testing.T) {
 
 func TestSMTPEmailSender_SetTemplatePaths_NonExistentFile(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	// 存在しないファイルパスを設定
 	sender.SetTemplatePaths("/nonexistent/subject.txt", "/nonexistent/body.txt")
 
@@ -116,10 +116,10 @@ func TestSMTPEmailSender_SetTemplatePaths_NonExistentFile(t *testing.T) {
 
 func TestSMTPEmailSender_SetFrom(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	originalFrom := sender.from
 	sender.SetFrom("custom@example.com")
-	
+
 	assert.Equal(t, "custom@example.com", sender.from, "差出人が更新される")
 	assert.NotEqual(t, originalFrom, sender.from, "元の差出人と異なる")
 }
@@ -127,7 +127,7 @@ func TestSMTPEmailSender_SetFrom(t *testing.T) {
 func TestNewSMTPEmailSenderWithTemplates(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
-	
+
 	// カスタムテンプレートファイルを作成
 	subjectPath := filepath.Join(tmpDir, "subject.txt")
 	err := os.WriteFile(subjectPath, []byte("カスタム件名"), 0644)
@@ -138,7 +138,7 @@ func TestNewSMTPEmailSenderWithTemplates(t *testing.T) {
 	require.NoError(t, err)
 
 	sender := NewSMTPEmailSenderWithTemplates(subjectPath, bodyPath, "custom@example.com")
-	
+
 	assert.NotNil(t, sender, "SMTPEmailSenderが作成される")
 	assert.Equal(t, "custom@example.com", sender.from, "差出人が設定される")
 	assert.NotNil(t, sender.subjectTemplate, "件名テンプレートが読み込まれる")
@@ -164,9 +164,9 @@ func TestNewSMTPEmailSenderWithTemplates(t *testing.T) {
 func TestSMTPEmailSender_buildEmailMessage(t *testing.T) {
 	sender := NewSMTPEmailSender()
 	sender.SetFrom("test@example.com")
-	
+
 	message := sender.buildEmailMessage("recipient@example.com", "テスト件名", "テスト本文")
-	
+
 	assert.Contains(t, message, "From: test@example.com", "差出人が含まれる")
 	assert.Contains(t, message, "To: recipient@example.com", "宛先が含まれる")
 	assert.Contains(t, message, "Subject: テスト件名", "件名が含まれる")
@@ -177,7 +177,7 @@ func TestSMTPEmailSender_buildEmailMessage(t *testing.T) {
 // Test edge cases for template execution
 func TestSMTPEmailSender_TemplateVariables(t *testing.T) {
 	sender := NewSMTPEmailSender()
-	
+
 	data := InvitationTemplateData{
 		Email:          "user@example.com",
 		InvitationURL:  "http://example.com/invite/abc123",
@@ -196,4 +196,3 @@ func TestSMTPEmailSender_TemplateVariables(t *testing.T) {
 	assert.Contains(t, body, "abc123", "トークンが含まれる")
 	assert.Contains(t, body, "2024-12-31 23:59:59", "有効期限が含まれる")
 }
-

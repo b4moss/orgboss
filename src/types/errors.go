@@ -11,4 +11,3 @@ var (
 	ErrOrganizationAccessDenied = errors.New("organization access denied")
 	ErrInvitationPending        = errors.New("invitation is still pending, please complete password setup")
 )
-

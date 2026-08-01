@@ -49,4 +49,3 @@ type EmailSender interface {
 	// If invitationURL is not empty, include the URL in the email body
 	SendInvitation(ctx context.Context, invitation *Invitation, invitationURL string) error
 }
-

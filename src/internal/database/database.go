@@ -46,7 +46,7 @@ func Migrate(db *gorm.DB) error {
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'users' AND column_name = 'password'").Scan(&count).Error; err != nil {
 		// Ignore errors (e.g., table doesn't exist)
 	}
-	
+
 	if count == 0 {
 		// Add password column if it doesn't exist (nullable for existing data compatibility)
 		if err := db.Exec("ALTER TABLE users ADD COLUMN password TEXT DEFAULT ''").Error; err != nil {
@@ -63,25 +63,25 @@ func Migrate(db *gorm.DB) error {
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'organizations' AND column_name = 'signature'").Scan(&signatureCount).Error; err != nil {
 		// Ignore errors (e.g., table doesn't exist)
 	}
-	
+
 	if signatureCount == 0 {
 		// Add signature column if it doesn't exist (first add as nullable)
 		if err := db.Exec("ALTER TABLE organizations ADD COLUMN signature TEXT").Error; err != nil {
 			// Ignore errors (e.g., already exists)
 		}
 	}
-	
+
 	// Set random values for existing records where signature is empty (NULL or empty string)
 	// Generate random string using PostgreSQL's gen_random_uuid() and md5() (truncated to 24 characters)
 	if err := db.Exec("UPDATE organizations SET signature = LEFT(md5(gen_random_uuid()::text || id::text || random()::text), 24) WHERE signature IS NULL OR signature = ''").Error; err != nil {
 		// Ignore errors
 	}
-	
+
 	// Add NOT NULL constraint (ignore error if already exists)
 	if err := db.Exec("ALTER TABLE organizations ALTER COLUMN signature SET NOT NULL").Error; err != nil {
 		// Ignore errors (e.g., already NOT NULL)
 	}
-	
+
 	// Add unique index
 	if err := db.Exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_organizations_signature ON organizations(signature)").Error; err != nil {
 		// Ignore errors (e.g., already exists)
@@ -92,7 +92,7 @@ func Migrate(db *gorm.DB) error {
 	if err := db.Raw("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'organizations' AND column_name = 'signature_type'").Scan(&signatureTypeCount).Error; err != nil {
 		// Ignore errors (e.g., table doesn't exist)
 	}
-	
+
 	if signatureTypeCount > 0 {
 		// Drop signature_type column index
 		if err := db.Exec("DROP INDEX IF EXISTS idx_organizations_signature_type").Error; err != nil {
@@ -119,4 +119,3 @@ func getEnv(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

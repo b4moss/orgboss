@@ -8,11 +8,11 @@ import (
 
 // Re-export errors from the types package
 var (
-	ErrOrganizationNotFound     = types.ErrOrganizationNotFound
-	ErrUserNotFound             = types.ErrUserNotFound
-	ErrInvitationNotFound       = types.ErrInvitationNotFound
-	ErrInvalidInput             = types.ErrInvalidInput
-	ErrEmailAlreadyExists       = types.ErrEmailAlreadyExists
+	ErrOrganizationNotFound = types.ErrOrganizationNotFound
+	ErrUserNotFound         = types.ErrUserNotFound
+	ErrInvitationNotFound   = types.ErrInvitationNotFound
+	ErrInvalidInput         = types.ErrInvalidInput
+	ErrEmailAlreadyExists   = types.ErrEmailAlreadyExists
 )
 
 // Additional error definitions (not in the types package)

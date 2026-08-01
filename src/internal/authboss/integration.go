@@ -20,7 +20,7 @@ type User struct {
 	Password string `db:"password"`
 
 	// orgboss extension fields
-	OrganizationID uint        `gorm:"not null;index" db:"organization_id"`
+	OrganizationID uint         `gorm:"not null;index" db:"organization_id"`
 	Role           types.Role   `gorm:"not null;default:'user'" db:"role"`
 	CreatedAt      sql.NullTime `db:"created_at"`
 	UpdatedAt      sql.NullTime `db:"updated_at"`
@@ -160,12 +160,13 @@ func SetupAuthbossWithAutoLogin(db *gorm.DB, ab *authboss.Authboss, enableAutoLo
 // This function is called from the password reset HTTP handler
 //
 // Usage example:
-//   func passwordResetHandler(w http.ResponseWriter, r *http.Request) {
-//       // Password reset processing...
-//       if err := authbossuser.RedirectToLoginAfterPasswordReset(r.Context(), w, r, ab); err != nil {
-//           // Error handling
-//       }
-//   }
+//
+//	func passwordResetHandler(w http.ResponseWriter, r *http.Request) {
+//	    // Password reset processing...
+//	    if err := authbossuser.RedirectToLoginAfterPasswordReset(r.Context(), w, r, ab); err != nil {
+//	        // Error handling
+//	    }
+//	}
 func RedirectToLoginAfterPasswordReset(ctx context.Context, w http.ResponseWriter, r *http.Request, ab *authboss.Authboss) error {
 	// Get redirect path to login page
 	loginPath := "/login"
@@ -217,4 +218,3 @@ func ValidateOrganizationAccess(ctx context.Context, user authboss.User, orgID u
 
 	return nil
 }
-

@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	
+
 	"github.com/b4m-oss/orgboss/internal/email"
 	"github.com/b4m-oss/orgboss/internal/storage"
 )
@@ -107,7 +107,7 @@ func TestCreateOrganizationWithUser_Success(t *testing.T) {
 	assert.Equal(t, userEmail, user.Email, "ユーザーのメールアドレスが正しく設定される")
 	assert.Equal(t, RoleManager, user.Role, "最初のユーザーはmanagerロールになる")
 	assert.Equal(t, org.ID, user.OrganizationID, "UserのOrganizationIDが正しく設定される")
-	
+
 	// Signatureの検証
 	assert.NotEmpty(t, org.Signature, "Signatureが設定される")
 }
@@ -139,7 +139,7 @@ func TestCreateOrganizationWithUser_HookError(t *testing.T) {
 	config := DefaultConfig()
 	config.EmailSender = &mockEmailSender{}
 	m := NewManager(config)
-	
+
 	// BeforeOrganizationCreateフックでエラーを返す
 	m.hooks.BeforeOrganizationCreate = func(ctx context.Context, data interface{}) error {
 		return ErrPermissionDenied
@@ -856,7 +856,7 @@ func TestGetOrganizationBySignature_Success_UniqueConstraint(t *testing.T) {
 	}
 	err = storage.CreateOrganization(ctx, org2)
 	require.NoError(t, err) // インメモリストレージではユニーク制約がチェックされない
-	
+
 	// GetOrganizationBySignatureがどちらかのOrganizationを返すことを確認
 	// 注意: mapのイテレーション順序は保証されないため、org1またはorg2のどちらかが返される
 	retrievedOrg, err := storage.GetOrganizationBySignature(ctx, "duplicate-signature-12345")
@@ -1564,7 +1564,7 @@ func TestDefaultConfig_OtherSettings(t *testing.T) {
 func TestNewManager_TemplateSettingsApplied(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
-	
+
 	// カスタムテンプレートファイルを作成
 	subjectPath := filepath.Join(tmpDir, "subject.txt")
 	err := os.WriteFile(subjectPath, []byte("カスタム件名"), 0644)
@@ -1610,7 +1610,7 @@ func TestNewManager_WorksWithoutTemplateSettings(t *testing.T) {
 func TestNewManagerWithStorage_TemplateSettingsApplied(t *testing.T) {
 	// 一時ディレクトリを作成
 	tmpDir := t.TempDir()
-	
+
 	// カスタムテンプレートファイルを作成
 	subjectPath := filepath.Join(tmpDir, "subject.txt")
 	err := os.WriteFile(subjectPath, []byte("カスタム件名"), 0644)
