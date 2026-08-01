@@ -27,7 +27,7 @@ func NewManager(config *Config) *Manager {
 		config = DefaultConfig()
 	}
 	stor := storage.NewInMemoryStorage()
-	
+
 	// Set default implementations
 	if config.RoleChecker == nil {
 		config.RoleChecker = NewDefaultRoleChecker()
@@ -41,7 +41,7 @@ func NewManager(config *Config) *Manager {
 
 	// Apply template settings if EmailSender is SMTPEmailSender
 	applyEmailTemplateConfig(config)
-	
+
 	return &Manager{
 		config:  config,
 		hooks:   NewHooks(),
@@ -54,7 +54,7 @@ func NewManagerWithStorage(config *Config, storage Storage) *Manager {
 	if config == nil {
 		config = DefaultConfig()
 	}
-	
+
 	// Set default implementations
 	if config.RoleChecker == nil {
 		config.RoleChecker = NewDefaultRoleChecker()
@@ -68,7 +68,7 @@ func NewManagerWithStorage(config *Config, storage Storage) *Manager {
 
 	// Apply template settings if EmailSender is SMTPEmailSender
 	applyEmailTemplateConfig(config)
-	
+
 	return &Manager{
 		config:  config,
 		hooks:   NewHooks(),
@@ -576,7 +576,7 @@ func (m *Manager) createOrganization(ctx context.Context, name string) (*Organiz
 	if err != nil {
 		return nil, err
 	}
-	
+
 	org := &Organization{
 		Name:      name,
 		Signature: signature,
@@ -733,4 +733,3 @@ func applyEmailTemplateConfig(config *Config) {
 		smtpSender.SetFrom(config.InvitationEmailFrom)
 	}
 }
-

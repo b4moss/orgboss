@@ -21,4 +21,3 @@ type Hooks struct {
 func NewHooks() *Hooks {
 	return &Hooks{}
 }
-

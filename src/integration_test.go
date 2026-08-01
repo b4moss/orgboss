@@ -126,10 +126,10 @@ func TestIntegration_CreateOrganizationWithUser(t *testing.T) {
 	retrievedOrg, err := postgresStorage.GetOrganization(ctx, org.ID)
 	require.NoError(t, err)
 	assert.Equal(t, orgName, retrievedOrg.Name)
-	
+
 	// Verify Signature
 	assert.NotEmpty(t, retrievedOrg.Signature, "Signature is set")
-	
+
 	// Verify that Organization can be retrieved by Signature
 	retrievedOrgBySignature, err := postgresStorage.GetOrganizationBySignature(ctx, retrievedOrg.Signature)
 	require.NoError(t, err)
@@ -253,9 +253,9 @@ func TestIntegration_WithSeedData(t *testing.T) {
 	require.Len(t, seedData.Organizations, 2)
 	require.Len(t, seedData.Users, 3)
 	require.Len(t, seedData.Invitations, 3)
-	
+
 	// Debug: verify that seed data was created
-	t.Logf("Seed data created: Organizations=%d, Users=%d, Invitations=%d", 
+	t.Logf("Seed data created: Organizations=%d, Users=%d, Invitations=%d",
 		len(seedData.Organizations), len(seedData.Users), len(seedData.Invitations))
 
 	// Create PostgresStorage
@@ -266,16 +266,16 @@ func TestIntegration_WithSeedData(t *testing.T) {
 	retrievedOrg, err := postgresStorage.GetOrganization(ctx, org1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, org1.Name, retrievedOrg.Name)
-	
+
 	// Verify Signature
 	assert.NotEmpty(t, retrievedOrg.Signature, "Signature is set")
 	assert.Equal(t, org1.Signature, retrievedOrg.Signature, "Signature matches")
-	
+
 	// Verify that Organization can be retrieved by Signature
 	retrievedOrgBySignature, err := postgresStorage.GetOrganizationBySignature(ctx, org1.Signature)
 	require.NoError(t, err)
 	assert.Equal(t, org1.ID, retrievedOrgBySignature.ID, "Organization can be retrieved by Signature")
-	
+
 	// Also verify org2
 	org2 := seedData.Organizations[1]
 	retrievedOrg2, err := postgresStorage.GetOrganization(ctx, org2.ID)
@@ -304,7 +304,7 @@ func TestIntegration_WithSeedData(t *testing.T) {
 	// Try to get non-existent Organization by Signature (verify error is returned)
 	_, err = postgresStorage.GetOrganizationBySignature(ctx, "non-existent-signature")
 	assert.Error(t, err, "Error is returned for non-existent Signature")
-	
+
 	// Note: Explicit cleanup here is not needed as defer cleanup() will handle it
 	// If SKIP_CLEANUP=true is set, data is kept even in defer cleanup()
 }
@@ -465,13 +465,13 @@ func TestIntegration_AuthbossUserLogin(t *testing.T) {
 		// Type assertion to authbossuser.User
 		authbossUser, ok := retrievedUser.(*authbossuser.User)
 		require.True(t, ok, "Must be convertible to authbossuser.User type")
-		
+
 		// Since Authboss saves password hashed,
 		// verify that retrieved password hash exists
 		retrievedPasswordHash := authbossUser.GetPassword()
 		assert.NotEmpty(t, retrievedPasswordHash, "Password hash must be retrievable")
 		assert.NotEqual(t, password, retrievedPasswordHash, "Password must be hashed")
-		
+
 		// Verify password (verify with bcrypt)
 		err := bcrypt.CompareHashAndPassword([]byte(retrievedPasswordHash), []byte(password))
 		assert.NoError(t, err, "Hashed password must be verifiable correctly")
@@ -574,7 +574,7 @@ func TestIntegration_SetupAuthbossWithAutoLogin(t *testing.T) {
 	// Create Authboss instance (for simple testing)
 	// Note: Implementation must match Authboss v3's actual API
 	ab := &authboss.Authboss{}
-	
+
 	// Call SetupAuthbossWithAutoLogin and verify no error occurs
 	err := authbossuser.SetupAuthbossWithAutoLogin(db, ab, true)
 	// Errors may occur as implementation is currently incomplete
@@ -598,7 +598,7 @@ type authbossServerStorer struct {
 func (s *authbossServerStorer) Save(ctx context.Context, user authboss.User) error {
 	// Get values from Authboss's User interface
 	email := user.GetPID()
-	
+
 	// Type assert to authbossuser.User to get password
 	authbossUser, ok := user.(*authbossuser.User)
 	if !ok {
@@ -622,7 +622,7 @@ func (s *authbossServerStorer) Save(ctx context.Context, user authboss.User) err
 		return err
 	}
 	signature := hex.EncodeToString(signatureBytes)
-	
+
 	org := &types.Organization{
 		Name:      "テスト組織",
 		Signature: signature,
@@ -663,12 +663,12 @@ func (s *authbossServerStorer) Load(ctx context.Context, key string) (authboss.U
 
 // MailpitMessage is the structure of email messages returned from Mailpit's API
 type MailpitMessage struct {
-	ID      string   `json:"ID"`
-	From    MailpitAddress `json:"From"`
+	ID      string           `json:"ID"`
+	From    MailpitAddress   `json:"From"`
 	To      []MailpitAddress `json:"To"`
-	Subject string   `json:"Subject"`
-	Text    string   `json:"Text"`
-	HTML    string   `json:"HTML"`
+	Subject string           `json:"Subject"`
+	Text    string           `json:"Text"`
+	HTML    string           `json:"HTML"`
 }
 
 // MailpitAddress is Mailpit's email address structure
@@ -679,9 +679,9 @@ type MailpitAddress struct {
 
 // MailpitMessagesResponse is the response from Mailpit's email list API
 type MailpitMessagesResponse struct {
-	Total int              `json:"total"`
-	Count int              `json:"count"`
-	Start int              `json:"start"`
+	Total    int              `json:"total"`
+	Count    int              `json:"count"`
+	Start    int              `json:"start"`
 	Messages []MailpitMessage `json:"messages"`
 }
 
@@ -689,7 +689,7 @@ type MailpitMessagesResponse struct {
 func getMailpitMessages(t *testing.T) ([]MailpitMessage, error) {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/messages", mailpitURL)
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages from Mailpit: %w", err)
@@ -713,7 +713,7 @@ func getMailpitMessages(t *testing.T) ([]MailpitMessage, error) {
 func getMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/message/%s", mailpitURL, messageID)
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get message from Mailpit: %w", err)
@@ -737,7 +737,7 @@ func getMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 func clearMailpitMessages(t *testing.T) error {
 	mailpitURL := getEnv("MAILPIT_URL", "http://mailpit:8025")
 	url := fmt.Sprintf("%s/api/v1/messages", mailpitURL)
-	
+
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create delete request: %w", err)
@@ -775,7 +775,7 @@ func TestIntegration_EmailSending(t *testing.T) {
 	ctx := context.Background()
 	postgresStorage := storage.NewPostgresStorage(db)
 	config := DefaultConfig()
-	
+
 	// Use SMTPEmailSender
 	smtpSender := email.NewSMTPEmailSender()
 	config.EmailSender = smtpSender
@@ -804,11 +804,11 @@ func TestIntegration_EmailSending(t *testing.T) {
 
 	// Get latest email (first email is latest)
 	latestMessageSummary := messages[0]
-	
+
 	// Get email details (including body)
 	latestMessage, err := getMailpitMessage(t, latestMessageSummary.ID)
 	require.NoError(t, err, "Cannot get email details from Mailpit")
-	
+
 	// Verify email content
 	assert.Equal(t, "組織への招待", latestMessage.Subject, "Subject is correct")
 	assert.Contains(t, latestMessage.To[0].Address, inviteEmail, "Recipient is correct")
@@ -840,14 +840,13 @@ func TestIntegration_EmailSending(t *testing.T) {
 
 	// Check latest email (resent email)
 	latestMessage2Summary := messages2[0]
-	
+
 	// Get email details (including body)
 	latestMessage2, err := getMailpitMessage(t, latestMessage2Summary.ID)
 	require.NoError(t, err, "Cannot get resent email details from Mailpit")
-	
+
 	assert.Equal(t, "組織への招待", latestMessage2.Subject, "Resent email subject is correct")
 	assert.Contains(t, latestMessage2.To[0].Address, "invited2@example.com", "Resent email recipient is correct")
 	assert.Contains(t, latestMessage2.Text, updatedInvitation2.Token, "Resent email body contains regenerated token")
 	assert.Contains(t, latestMessage2.Text, updatedInvitation2.ExpiresAt.Format("2006-01-02"), "Resent email body contains updated expiry date")
 }
-
