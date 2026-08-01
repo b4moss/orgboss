@@ -2,8 +2,8 @@
 
 Organization multi-tenant management package with authboss
 
-[![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/b4m-oss/orgboss/graph/badge.svg)](https://codecov.io/gh/b4m-oss/orgboss)
+[![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/b4m-oss/orgboss/graph/badge.svg?branch=develop)](https://codecov.io/gh/b4m-oss/orgboss)
 
 ## Features
 

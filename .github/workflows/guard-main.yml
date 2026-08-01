@@ -1,0 +1,20 @@
+name: Guard main
+
+# main への変更は develop からの PR のみ許可する
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  require-develop:
+    name: Require develop branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check head branch is develop
+        run: |
+          if [ "${{ github.head_ref }}" != "develop" ]; then
+            echo "::error::PRs into main must come from develop (got '${{ github.head_ref }}')"
+            exit 1
+          fi
+          echo "OK: head branch is develop"
