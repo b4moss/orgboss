@@ -1,5 +1,7 @@
 # orgboss
 
+**English** | [日本語](README_ja.md)
+
 Organization multi-tenant management package with authboss
 
 [![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
