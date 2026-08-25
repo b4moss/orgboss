@@ -1,10 +1,16 @@
 # orgboss
 
+[![CI](https://github.com/b4moss/orgboss/actions/workflows/test.yml/badge.svg)](https://github.com/b4moss/orgboss/actions/workflows/test.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/b4moss/orgboss)](https://codecov.io/gh/b4moss/orgboss)
+[![Go Reference](https://pkg.go.dev/badge/github.com/b4m-oss/orgboss.svg)](https://pkg.go.dev/github.com/b4m-oss/orgboss)
+[![Release](https://img.shields.io/github/v/release/b4moss/orgboss)](https://github.com/b4moss/orgboss/releases)
+[![License](https://img.shields.io/github/license/b4moss/orgboss)](https://github.com/b4moss/orgboss/blob/main/LICENSE)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/b4moss/orgboss/badge)](https://securityscorecards.dev/viewer/?uri=github.com/b4moss/orgboss)
+
 **English** | [日本語](README_ja.md)
 
 Organization multi-tenant management package with authboss
 
-[![Tests](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/b4m-oss/orgboss/actions/workflows/test.yml)
 
 ## Features
 
