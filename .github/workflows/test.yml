@@ -34,10 +34,19 @@ jobs:
         working-directory: src
         run: go vet ./...
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         working-directory: src
         run: |
-          go test -short -v ./...
+          go test -short -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: src/coverage.out
+          flags: unit
+          fail_ci_if_error: false
+          verbose: true
 
   integration-tests:
     name: Integration Tests
